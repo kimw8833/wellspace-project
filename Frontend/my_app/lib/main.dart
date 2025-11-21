@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'RoomPage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,7 +63,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             SizedBox(height: 10),
             SizedBox(width: 400,
-            child: ElevatedButton(onPressed: () {},
+            child: ElevatedButton(onPressed: () {
+              Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RoomPage()),
+                );
+              },
             style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromRGBO(163, 198, 184, 1),
                 padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
