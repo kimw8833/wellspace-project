@@ -23,33 +23,6 @@ const pool = mysql.createPool({
 
 // ------------------- routes -------------------
 
-// simple ping route
-app.get('/api/ping', (req, res) => {
-  res.json({ message: 'pong', time: new Date().toISOString() });
-});
-
-// check database connection
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT NOW() AS now');
-    res.json({ ok: true, nowFromDb: rows[0].now });
-  } catch (err) {
-    console.error('DB error in /api/test-db:', err);
-    res.status(500).json({ ok: false, error: 'Database error' });
-  }
-});
-
-// Pull alla users from users table
-// Send JSON array of users (no password)
-app.get('/api/users', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT id, username FROM users');
-    res.json(rows);
-  } catch (err) {
-    console.error('DB error in /api/users:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
-});
 
 // Test login route
 // Flutter or client send JSON: { "username": "Kim", "password": "1234" }
@@ -79,6 +52,57 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error('DB error in /api/login:', err);
     res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+/*
+
+Flutter eller klient skickar JSON:
+{ "username": "Kim", "password": "1234" }
+
+Om det gick bra, svara med JSON:
+{
+  "ok": true,
+  "user": {
+    "id": 1,
+    "username": "Kim"
+  }
+}
+Om det gick dåligt, svara med JSON:
+{
+  "ok": false,
+  "error": "Invalid username or password"
+}
+
+*/
+
+
+// ------------------- For testing if server is running ------------------- 
+// simple ping route
+app.get('/api/ping', (req, res) => {
+  res.json({ message: 'pong', time: new Date().toISOString() });
+});
+
+// check database connection
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT NOW() AS now');
+    res.json({ ok: true, nowFromDb: rows[0].now });
+  } catch (err) {
+    console.error('DB error in /api/test-db:', err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+// Pull alla users from users table
+// Send JSON array of users (no password)
+app.get('/api/users', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, username FROM users');
+    res.json(rows);
+  } catch (err) {
+    console.error('DB error in /api/users:', err);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 
