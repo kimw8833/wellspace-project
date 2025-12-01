@@ -36,6 +36,33 @@ app.use(express.json());
 //
 
 //
+// Route: Dog Status
+//
+// Get dog status for a specific user
+app.get('/api/dog-status/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT dog_status FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    res.json({
+      ok: true,
+      dog_status: rows[0].dog_status  // skicka tillbaka dog status 0,1,2
+    });
+  } catch (err) {
+    console.error('DB error:', err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+//
 // Route: Login
 //
 // Ex. Flutter or client send JSON: { "username": "Kim", "password": "1234" }
