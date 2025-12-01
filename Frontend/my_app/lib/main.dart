@@ -2,6 +2,34 @@ import 'package:flutter/material.dart';
 import 'RoomPage.dart';
 import 'api_service.dart';
 
+// HTTP package
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+const String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; // Ändra url här 
+// 
+
+/* Example POST request:
+
+final url = Uri.parse('$baseUrl/api/login');
+
+final response = await http.post(
+  url,
+  headers: {'Content-Type': 'application/json'},
+  body: jsonEncode({
+    'username': _usernameController.text.trim(),
+    'password': _passwordController.text.trim(),
+  }),
+);
+
+Andra exempel (typ likadant):
+POST https://paragogically-unlegible-grazyna.ngrok-free.dev/api/login
+{
+  "username": "kim",
+  "password": "1234"
+}
+
+*/
+
 void main() {
   runApp(const MyApp());
 }
