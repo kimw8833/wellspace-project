@@ -5,8 +5,10 @@ import 'api_service.dart';
 // HTTP package
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-const String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; // Ändra url här 
-// 
+
+const String baseUrl =
+    'https://paragogically-unlegible-grazyna.ngrok-free.dev'; // Ändra url här
+//
 
 /* Example POST request:
 
@@ -116,22 +118,35 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               width: 400,
               child: ElevatedButton(
-                onPressed: () {
-                  //if (_usernameController.text == username &&
-                  //  _passwordController.text == password) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RoomPage()),
-                  );
-                  //   }
+                onPressed: () async {
+                  try {
+                    final loginData = await ApiService().login(
+                      _usernameController.text,
+                      _passwordController.text,
+                    );
+
+                    if (loginData["success"] == true) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MyRoomPage(
+                            playerId: loginData["user"]?["id"],
+                          ),
+                        ),
+                      );
+                    } else {
+                      final errorMessage = loginData["error"] ?? "Login failed";
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(errorMessage)),
+                      );
+                    }
+                  } catch (e) {
+                    print("Login error: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("An error occurred")),
+                    );
+                  }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromRGBO(146, 202, 170, 1),
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
                 child: Text(
                   "Login",
                   style: TextStyle(
