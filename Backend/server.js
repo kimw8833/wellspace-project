@@ -36,6 +36,35 @@ app.use(express.json());
 //
 
 //
+// Route: Room mood
+//
+// Get Room mood for a specific user
+app.get('/api/room-mood/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT room_mood FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    res.json({
+      ok: true,
+      room_mood: rows[0].room_mood  // ← skicka room mood tillbaka här 0,1,2,3,...
+    });
+  } catch (err) {
+    console.error('DB error in /api/room-mood:', err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+
+//
 // Route: Dog Status
 //
 // Get dog status for a specific user
@@ -54,7 +83,7 @@ app.get('/api/dog-status/:userId', async (req, res) => {
 
     res.json({
       ok: true,
-      dog_status: rows[0].dog_status  // skicka tillbaka dog status 0,1,2
+      dog_status: rows[0].dog_status  // skicka tillbaka dog status 0,1,2.,,,
     });
   } catch (err) {
     console.error('DB error:', err);
