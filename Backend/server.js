@@ -1,17 +1,18 @@
 // server.js
+// Sets up an Express server
+// Imports and setups the Express framework, which is used for handling HTTP requests and creating a web server.
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
+
+// Connects to a MySQL database using a connection pool.
+// Imports the MySQL2 library, which allows the application to interact with a MySQL database.
 const mysql = require('mysql2/promise');
 
-const app = express();
-const PORT = 3000; // kan ändra
-
-// tillåter backend läsa JSON body samt Flutter/web calls över the origin
-app.use(cors());
-app.use(express.json());
-
-// create MySQL connection pool
-const pool = mysql.createPool({
+// Create a MySQL connection pool
+// A connection pool improves performance
+// by keeping a set of database connections open and reusing them,
+// instead of creating a new connection for each query.
+const pool  = mysql.createPool({
   host: 'localhost',
   user: 'wellspace',
   password: 'wellspace2025',
@@ -21,11 +22,23 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// ------------------- routes -------------------
+// Creates an instance of an Express application, which will be used to define routes and handle requests.
+const app = express();
+// Sets the port number that the server will listen on (port 3000 in this case).
+const PORT = 3000; // kan ändra
 
+// tillåter backend läsa JSON body samt Flutter/web calls över the origin
+app.use(cors());
+app.use(express.json());
 
-// Test login route
-// Flutter or client send JSON: { "username": "Kim", "password": "1234" }
+//
+// Routes
+//
+
+//
+// Route: Login
+//
+// Ex. Flutter or client send JSON: { "username": "Kim", "password": "1234" }
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 

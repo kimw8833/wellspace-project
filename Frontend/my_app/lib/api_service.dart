@@ -2,8 +2,49 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final String baseUrl = 'http://127.0.0.1:8000'; //for testing locally
+  //final String baseUrl = 'http://127.0.0.1:8000'; //for testing locally
+  final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
 
+  //
+  // LOGIN FUNCTION
+  //
+  Future<Map<String, dynamic>> login(String username, String password) async {
+    final url = Uri.parse('$baseUrl/api/login');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'password': password,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['ok'] == true) {
+        // login success
+        return {
+          "success": true,
+          "user": data["user"], // { id: ..., username: ... }
+        };
+      } else {
+        // login fail ex. user/password stämmer inte
+        return {
+          "success": false,
+          "error": data["error"] ?? "Login failed",
+        };
+      }
+    } catch (e) {
+      // network error eller server error
+      return {
+        "success": false,
+        "error": e.toString(),
+      };
+    }
+  }
+  
   // Fetch games for a specific user. Takes playerId as argument.
   Future<List<dynamic>> getUserLoginData() async {
     final response = await http.get(Uri.parse('$baseUrl/users'));
