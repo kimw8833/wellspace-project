@@ -6,26 +6,45 @@ class ApiService {
   final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
 
 
-//
-// DOG STATUS FUNCTION
-//
-Future<int?> getDogStatus(int userId) async {
-  final url = Uri.parse('$baseUrl/api/dog-status/$userId');
+  //
+  // ROOM MOOD FUNCTION
+  //
+  Future<int?> getRoomMood(int userId) async {
+    final url = Uri.parse('$baseUrl/api/room-mood/$userId');
 
-  try {
-    final response = await http.get(url);
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data["dog_status"]; // ← får dog status 0,1,2,...
-    } else {
-      return null; // error
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data["room_mood"]; // ← får room mood 0,1,2,...
+      } else {
+        return null; // error
+      }
+    } catch (e) {
+      return null;
     }
-  } catch (e) {
-    return null;
   }
-}
 
+  //
+  // DOG STATUS FUNCTION
+  //
+  Future<int?> getDogStatus(int userId) async {
+    final url = Uri.parse('$baseUrl/api/dog-status/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data["dog_status"]; // ← får dog status 0,1,2,...
+      } else {
+        return null; // error
+      }
+    } catch (e) {
+      return null;
+    }
+  }
 
   //
   // LOGIN FUNCTION
