@@ -60,6 +60,8 @@ flutter:
 
   assets:
     - assets/images/Basic00.png
+    - assets/images/roomHappy.png
+    - assets/images/roomSad.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

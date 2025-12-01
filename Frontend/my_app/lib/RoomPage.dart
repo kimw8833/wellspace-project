@@ -8,7 +8,7 @@ class RoomPage extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: AssetImage("assets/images/Basic00.png"),
+          image: AssetImage("assets/images/roomHappy.png"),
           //fit: BoxFit.cover,
         ),
       ),
