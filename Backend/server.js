@@ -1,17 +1,18 @@
 // server.js
+// Sets up an Express server
+// Imports and setups the Express framework, which is used for handling HTTP requests and creating a web server.
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
+
+// Connects to a MySQL database using a connection pool.
+// Imports the MySQL2 library, which allows the application to interact with a MySQL database.
 const mysql = require('mysql2/promise');
 
-const app = express();
-const PORT = 3000; // kan ändra
-
-// tillåter backend läsa JSON body samt Flutter/web calls över the origin
-app.use(cors());
-app.use(express.json());
-
-// create MySQL connection pool
-const pool = mysql.createPool({
+// Create a MySQL connection pool
+// A connection pool improves performance
+// by keeping a set of database connections open and reusing them,
+// instead of creating a new connection for each query.
+const pool  = mysql.createPool({
   host: 'localhost',
   user: 'wellspace',
   password: 'wellspace2025',
@@ -21,11 +22,79 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// ------------------- routes -------------------
+// Creates an instance of an Express application, which will be used to define routes and handle requests.
+const app = express();
+// Sets the port number that the server will listen on (port 3000 in this case).
+const PORT = 3000; // kan ändra
+
+// tillåter backend läsa JSON body samt Flutter/web calls över the origin
+app.use(cors());
+app.use(express.json());
+
+//
+// Routes
+//
+
+//
+// Route: Room mood
+//
+// Get Room mood for a specific user
+app.get('/api/room-mood/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT room_mood FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    res.json({
+      ok: true,
+      room_mood: rows[0].room_mood  // ← skicka room mood tillbaka här 0,1,2,3,...
+    });
+  } catch (err) {
+    console.error('DB error in /api/room-mood:', err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
 
 
-// Test login route
-// Flutter or client send JSON: { "username": "Kim", "password": "1234" }
+
+//
+// Route: Dog Status
+//
+// Get dog status for a specific user
+app.get('/api/dog-status/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT dog_status FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    res.json({
+      ok: true,
+      dog_status: rows[0].dog_status  // skicka tillbaka dog status 0,1,2.,,,
+    });
+  } catch (err) {
+    console.error('DB error:', err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+//
+// Route: Login
+//
+// Ex. Flutter or client send JSON: { "username": "Kim", "password": "1234" }
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
