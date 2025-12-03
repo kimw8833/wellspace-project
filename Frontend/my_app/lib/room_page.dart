@@ -47,10 +47,11 @@ class _RoomPageState extends State<MyRoomPage> {
 
   // ---- PLANT SPRITES ----
   static const List<String> _plantSpritePaths = [
-    "assets/images/dead_plant.png", // index 0
-    "assets/images/wilted_plant.png", // index 1
-    "assets/images/base_plant.png", // index 2
-    "assets/images/lush_plant.png", // index 3
+    "assets/images/plants/stage_1_plant.png", // index 0
+    "assets/images/plants/stage_2_plant.png", // index 1
+    "assets/images/plants/stage_3_plant.png", // index 2
+    "assets/images/plants/stage_4_plant.png",
+    "assets/images/plants/stage_5_plant.png", // index 3
   ];
 
   @override
@@ -310,11 +311,11 @@ class _RoomPageState extends State<MyRoomPage> {
     if (s < 0.25) {
       index = 0; // dead
     } else if (s < 0.5) {
-      index = 1; // wilted
+      index = 0; // wilted
     } else if (s < 0.75) {
-      index = 2; // base
+      index = 0; // base
     } else {
-      index = 3; // lush
+      index = 0; // lush
     }
 
     return SizedBox(
@@ -353,7 +354,7 @@ class _RoomPageState extends State<MyRoomPage> {
             child: Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage("assets/images/Basic00.png"),
+                  image: AssetImage("assets/images/rooms/daylight_room.png"),
                   fit: BoxFit.cover,
                 ),
               ),
