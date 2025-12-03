@@ -88,6 +88,9 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               width: 400,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromRGBO(146, 202, 170, 1),
+                ),
                 onPressed: () async {
                   try {
                     final loginData = await ApiService().login(
@@ -111,7 +114,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     }
                   } catch (e) {
-                    print("Login error: $e");
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("An error occurred")),
                     );
