@@ -4,7 +4,11 @@ import 'api_service.dart';
 
 class MyRoomPage extends StatefulWidget {
   final int playerId;
-  const MyRoomPage({super.key, required this.playerId});
+
+  const MyRoomPage({
+    super.key,
+    required this.playerId,
+  });
 
   @override
   State<MyRoomPage> createState() => _RoomPageState();
@@ -47,22 +51,24 @@ class _RoomPageState extends State<MyRoomPage> {
 
   // ---- PLANT SPRITES ----
   static const List<String> _plantSpritePaths = [
-    "assets/images/plants/stage_1_plant.png", // index 0
+    "assets/images/plants/stage_1_plant.png", // index 0 - worst
     "assets/images/plants/stage_2_plant.png", // index 1
-    "assets/images/plants/stage_3_plant.png", // index 2
-    "assets/images/plants/stage_4_plant.png",
-    "assets/images/plants/stage_5_plant.png", // index 3
+    "assets/images/plants/stage_3_plant.png", // index 2 - mid
+    "assets/images/plants/stage_4_plant.png", // index 3
+    "assets/images/plants/stage_5_plant.png", // index 4 - best
   ];
 
   @override
   void initState() {
     super.initState();
+
     _simulatedTime = DateTime.now();
     _currentSimulatedDate = DateTime(
       _simulatedTime.year,
       _simulatedTime.month,
       _simulatedTime.day,
     );
+
     roomMood = ApiService().getRoomMood(widget.playerId);
     dogMood = ApiService().getDogStatus(widget.playerId);
   }
@@ -106,7 +112,9 @@ class _RoomPageState extends State<MyRoomPage> {
 
   /// Manual daily advance: use today's water, then move date/time by 1 day.
   void _advanceManualOneDay() {
-    final double ratio = (_waterToday / _dailyGoal).clamp(0.0, 1.0).toDouble();
+    final double ratio =
+        (_waterToday / _dailyGoal).clamp(0.0, 1.0).toDouble();
+
     _applyDailyUpdate(ratio);
 
     // Advance date by 1 for both date + simulatedTime
@@ -173,7 +181,9 @@ class _RoomPageState extends State<MyRoomPage> {
         final double hoursToAdd = _hoursPerTickBase * _simSpeedMultiplier;
         final int minutesToAdd = (hoursToAdd * 60).round();
 
-        _simulatedTime = _simulatedTime.add(Duration(minutes: minutesToAdd));
+        _simulatedTime = _simulatedTime.add(
+          Duration(minutes: minutesToAdd),
+        );
 
         final DateTime newDate = DateTime(
           _simulatedTime.year,
@@ -248,7 +258,8 @@ class _RoomPageState extends State<MyRoomPage> {
   String get _formattedSimulatedTime {
     final d = _simulatedTime;
     String two(int n) => n.toString().padLeft(2, '0');
-    return "${d.year}-${two(d.month)}-${two(d.day)}  ${two(d.hour)}:${two(d.minute)}";
+    return "${d.year}-${two(d.month)}-${two(d.day)}  "
+        "${two(d.hour)}:${two(d.minute)}";
   }
 
   String get _autoSimLabel {
@@ -302,20 +313,26 @@ class _RoomPageState extends State<MyRoomPage> {
   // =================================================
 
   Widget _buildPlantSprite() {
-    // clamp S to [0,1]
+    // Clamp S to [0,1]
     final double s = _plantHealth.clamp(0.0, 1.0);
 
-    // Decide which sprite index to show based on S
-    // 0 = dead, 1 = wilted, 2 = base, 3 = lush
+    // 5 stages evenly distributed over [0, 1]:
+    // [0.00, 0.20) -> stage 1
+    // [0.20, 0.40) -> stage 2
+    // [0.40, 0.60) -> stage 3
+    // [0.60, 0.80) -> stage 4
+    // [0.80, 1.00] -> stage 5
     int index;
-    if (s < 0.25) {
-      index = 0; // dead
-    } else if (s < 0.5) {
-      index = 0; // wilted
-    } else if (s < 0.75) {
-      index = 0; // base
+    if (s < 0.2) {
+      index = 0;
+    } else if (s < 0.4) {
+      index = 1;
+    } else if (s < 0.6) {
+      index = 2;
+    } else if (s < 0.8) {
+      index = 3;
     } else {
-      index = 0; // lush
+      index = 4;
     }
 
     return SizedBox(
@@ -363,9 +380,12 @@ class _RoomPageState extends State<MyRoomPage> {
 
           // ---- PLANT ON LEFT DRAWER ----
           Positioned(
-            left: 220, // tweak these if you want finer placement
-            bottom: 350,
-            child: _buildPlantSprite(),
+            left: 1450 * (MediaQuery.of(context).size.width / 2528),
+            bottom: 1006 * (MediaQuery.of(context).size.height / 1696),
+            child: Transform.scale(
+              scale: 2,
+              child: _buildPlantSprite(),
+            ),
           ),
 
           // ---- TOP-LEFT SMALL TIME DISPLAY ----
@@ -476,10 +496,10 @@ class _RoomPageState extends State<MyRoomPage> {
                           alignment: WrapAlignment.center,
                           children: [
                             FancyDebugButton(
-                              label:
-                                  _autoSimRunning && _simSpeedMultiplier == 1.0
-                                      ? "Pause"
-                                      : "Play 1x",
+                              label: _autoSimRunning &&
+                                      _simSpeedMultiplier == 1.0
+                                  ? "Pause"
+                                  : "Play 1x",
                               onPressed: () {
                                 if (_autoSimRunning &&
                                     _simSpeedMultiplier == 1.0) {
@@ -490,10 +510,10 @@ class _RoomPageState extends State<MyRoomPage> {
                               },
                             ),
                             FancyDebugButton(
-                              label:
-                                  _autoSimRunning && _simSpeedMultiplier == 10.0
-                                      ? "Pause"
-                                      : "Play 10x",
+                              label: _autoSimRunning &&
+                                      _simSpeedMultiplier == 10.0
+                                  ? "Pause"
+                                  : "Play 10x",
                               onPressed: () {
                                 if (_autoSimRunning &&
                                     _simSpeedMultiplier == 10.0) {
@@ -600,14 +620,16 @@ class _RoomPageState extends State<MyRoomPage> {
                               ),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final double t =
-                                      _plantHealth.clamp(0.0, 1.0).toDouble();
-                                  final double w = constraints.maxWidth * t;
+                                  final double t = _plantHealth
+                                      .clamp(0.0, 1.0)
+                                      .toDouble();
+                                  final double w =
+                                      constraints.maxWidth * t;
                                   return Align(
                                     alignment: Alignment.centerLeft,
                                     child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                          milliseconds: 250),
                                       width: w,
                                       decoration: BoxDecoration(
                                         borderRadius:
