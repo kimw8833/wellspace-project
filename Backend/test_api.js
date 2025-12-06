@@ -141,6 +141,27 @@ async function testAPI() {
     console.log('Room mood     :', roomRes.data.room_mood);
 
     // ------------------------------------------------------------
+    // 14. Fetch full room_status row to inspect timestamps
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Fetching full room_status for user ${testUserId} ...`);
+    const fullStatusRes = await axios.get(
+      `${API_BASE_URL}/api/room-status/${testUserId}`
+    );
+    console.log('Response:', fullStatusRes.data);
+
+    const rs = fullStatusRes.data.room_status;
+    console.log('\nCurrent room_status row:');
+    console.log('user_id          :', rs.user_id);
+    console.log('plant_status     :', rs.plant_status);
+    console.log('dog_status       :', rs.dog_status);
+    console.log('window_status    :', rs.window_status);
+    console.log('room_mood        :', rs.room_mood);
+    console.log('last_plant_update:', rs.last_plant_update);
+    console.log('last_dog_update  :', rs.last_dog_update);
+    console.log('last_room_update :', rs.last_room_update);
+    console.log('updated_at       :', rs.updated_at);
+
+    // ------------------------------------------------------------
     console.log('\nAll tests finished.\n');
 
   } catch (error) {
