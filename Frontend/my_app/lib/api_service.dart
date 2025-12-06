@@ -6,6 +6,142 @@ class ApiService {
   final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
   
   //
+  // --- NEW: STEP GOAL / WATER GOAL / USER LOCATION ---
+  //
+
+  //
+  // GET STEP GOAL
+  //
+  Future<int?> getStepGoal(int userId) async {
+    final url = Uri.parse('$baseUrl/api/step-goal/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final value = data["step_goal"];
+        if (value is num) {
+          return value.toInt();
+        }
+        return int.tryParse(value.toString());
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // UPDATE STEP GOAL
+  //
+  Future<bool> updateStepGoal(int userId, int newGoal) async {
+    final url = Uri.parse('$baseUrl/api/step-goal/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "step_goal": newGoal,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
+  // GET WATER INTAKE GOAL (ml)
+  //
+  Future<int?> getWaterintakeGoal(int userId) async {
+    final url = Uri.parse('$baseUrl/api/waterintake-goal/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final value = data["waterintake_goal"];
+        if (value is num) {
+          return value.toInt();
+        }
+        return int.tryParse(value.toString());
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // UPDATE WATER INTAKE GOAL
+  //
+  Future<bool> updateWaterintakeGoal(int userId, int newGoal) async {
+    final url = Uri.parse('$baseUrl/api/waterintake-goal/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "waterintake_goal": newGoal,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
+  // GET USER LOCATION (inside / outside)
+  //
+  Future<String?> getUserLocation(int userId) async {
+    final url = Uri.parse('$baseUrl/api/user-location/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data["user_location"]?.toString();
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // UPDATE USER LOCATION
+  //
+  Future<bool> updateUserLocation(int userId, String newLocation) async {
+    // expected: "inside" or "outside"
+    final url = Uri.parse('$baseUrl/api/user-location/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "user_location": newLocation,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
   // GET PLANT STATUS 
   //
   Future<double?> getPlantStatus(int userId) async {
