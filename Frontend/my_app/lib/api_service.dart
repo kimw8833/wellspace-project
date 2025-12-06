@@ -6,7 +6,7 @@ class ApiService {
   final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
   
   //
-  // PLANT STATUS FUNCTION
+  // GET PLANT STATUS 
   //
   Future<double?> getPlantStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/plant-status/$userId');
@@ -26,7 +26,33 @@ class ApiService {
   }
 
   //
-  // DOG STATUS FUNCTION
+  // UPDATE PLANT STATUS
+  //
+  // Exempleuse: await api.updatePlantStatus(1, 0.20);
+  Future<bool> updatePlantStatus(int userId, double newValue) async {
+    final url = Uri.parse('$baseUrl/api/plant-status/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "plant_status": newValue,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
+  // GET DOG STATUS 
   //
   Future<double?> getDogStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/dog-status/$userId');
@@ -46,7 +72,32 @@ class ApiService {
   }
 
   //
-  // WINDOW STATUS FUNCTION
+  // UPDATE DOG STATUS
+  //
+  Future<bool> updateDogStatus(int userId, double newValue) async {
+    final url = Uri.parse('$baseUrl/api/dog-status/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "dog_status": newValue,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
+  // GET WINDOW STATUS 
   //
   Future<double?> getWindowStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/window-status/$userId');
@@ -66,7 +117,32 @@ class ApiService {
   }
 
   //
-  // ROOM MOOD FUNCTION
+  // UPDATE WINDOW STATUS
+  //
+  Future<bool> updateWindowStatus(int userId, double newValue) async {
+    final url = Uri.parse('$baseUrl/api/window-status/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "window_status": newValue,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  //
+  // GET ROOM MOOD 
   //
   Future<double?> getRoomMood(int userId) async {
     final url = Uri.parse('$baseUrl/api/room-mood/$userId');
@@ -82,6 +158,31 @@ class ApiService {
       }
     } catch (e) {
       return null;
+    }
+  }
+
+  //
+  // UPDATE ROOM MOOD
+  //
+  Future<bool> updateRoomMood(int userId, double newValue) async {
+    final url = Uri.parse('$baseUrl/api/room-mood/$userId');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "room_mood": newValue,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
     }
   }
 
