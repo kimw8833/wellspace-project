@@ -3,41 +3,75 @@ CREATE DATABASE IF NOT EXISTS wellspacedb;
 
 USE wellspacedb;
 
-DROP TABLE IF EXISTS users;
+-- Drop the tables acc. to foreign key's dependency order
+DROP TABLE IF EXISTS daily_steps;
 DROP TABLE IF EXISTS room_status;
+DROP TABLE IF EXISTS users;
 
+
+-- ---------------------------
+-- 1) Users table
+-- ---------------------------
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL
+    username   VARCHAR(50)  NOT NULL UNIQUE,
+    password   VARCHAR(255) NOT NULL,
+    step_goal  INT          NOT NULL DEFAULT 4000  -- user’s daily step goal
 );
 
-INSERT INTO users (username, password) VALUES
-('Kim', '1234'),
-('Martin', '1234'),
-('Tommy', '1234'),
-('Benjamin', '1234');
+INSERT INTO users (username, password, step_goal) VALUES
+('Benjamin', '1234', 4000),
+('Kim',      '1234', 4000),
+('Martin',   '1234', 4000),
+('Tommy',    '1234', 4000);
 
+
+-- ---------------------------
+-- 2) Room Status table (1:1 with users → use user_id as PK)
+-- ---------------------------
 CREATE TABLE room_status (
-  id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
 
-  plant_status TINYINT NOT NULL DEFAULT 0,   -- 0=dead,1=sad,2=happy
-  dog_status TINYINT NOT NULL DEFAULT 0,     -- 0=restless,1=neutral,2=happy
-  window_status TINYINT NOT NULL DEFAULT 0,  -- 0=closed,1=open
-  room_mood TINYINT NOT NULL DEFAULT 0,      -- 0=chaos,1=cozy,2=calm
+    plant_status    DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    dog_status      DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    window_status   DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    room_mood       DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+
+
+  last_plant_update TIMESTAMP NULL,
+  last_dog_update   TIMESTAMP NULL,
+  last_room_update  TIMESTAMP NULL,
 
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-              ON UPDATE CURRENT_TIMESTAMP,
+             ON UPDATE CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
+  PRIMARY KEY (user_id),
 
--- create default status for each user
+  CONSTRAINT fk_room_status_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+); 
+
+
+-- create default 1 room_status row per user
 INSERT INTO room_status (user_id)
 SELECT id FROM users;
 
-ALTER TABLE room_status
-  ADD COLUMN last_plant_care TIMESTAMP NULL,
-  ADD COLUMN last_dog_play TIMESTAMP NULL,
-  ADD COLUMN last_window_open TIMESTAMP NULL;
+
+-- ---------------------------------------------------
+-- 3) CREATE TABLE: daily_steps (use composite PK: user_id + date)
+-- ---------------------------------------------------
+CREATE TABLE daily_steps (
+    user_id INT  NOT NULL,
+    date    DATE NOT NULL,              -- date for the steps record
+    steps   INT  NOT NULL DEFAULT 0,    -- total steps for that date
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, date),        -- 1 user 1 row per date
+
+    CONSTRAINT fk_daily_steps_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);
