@@ -14,17 +14,19 @@ DROP TABLE IF EXISTS users;
 -- ---------------------------
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username   VARCHAR(50)  NOT NULL UNIQUE,
-    password   VARCHAR(255) NOT NULL,
-    step_goal  INT          NOT NULL DEFAULT 4000  -- user’s daily step goal
+    username          VARCHAR(50)  NOT NULL UNIQUE,
+    password          VARCHAR(255) NOT NULL,
+
+    step_goal         INT NOT NULL DEFAULT 4000,       -- user’s daily step goal
+    waterintake_goal  INT NOT NULL DEFAULT 2000,       -- daily water intake goal (ml)
+    room_mode VARCHAR(20) NOT NULL DEFAULT 'inside'  -- default room mode
 );
 
-INSERT INTO users (username, password, step_goal) VALUES
-('Benjamin', '1234', 4000),
-('Kim',      '1234', 4000),
-('Martin',   '1234', 4000),
-('Tommy',    '1234', 4000);
-
+INSERT INTO users (username, password, step_goal, waterintake_goal, room_mode) VALUES
+    ('Benjamin', '1234', 4000, 2000, 'inside'),
+    ('Kim',      '1234', 4000, 2000, 'inside'),
+    ('Martin',   '1234', 4000, 2000, 'inside'),
+    ('Tommy',    '1234', 4000, 2000, 'inside');
 
 -- ---------------------------
 -- 2) Room Status table (1:1 with users → use user_id as PK)
