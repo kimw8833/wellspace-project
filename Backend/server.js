@@ -34,7 +34,190 @@ app.use(express.json());
 //
 // Routes
 //
+
 //
+// User goals & user location routes
+// --------------------------------------
+// Table: 
+//  `users`
+//   - step_goal
+//   - waterintake_goal
+//   - user_location
+//
+
+// 1) GET step_goal
+// GET /api/step-goal/:userId
+app.get('/api/step-goal/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT step_goal FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      step_goal: rows[0].step_goal,
+    });
+  } catch (err) {
+    console.error('DB error in GET /api/step-goal:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 2) UPDATE step_goal
+// PUT /api/step-goal/:userId
+// body: { "step_goal": 5000 }
+app.put('/api/step-goal/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  const { step_goal } = req.body;
+
+  if (step_goal === undefined) {
+    return res.status(400).json({ ok: false, error: 'step_goal is required' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE users SET step_goal = ? WHERE id = ?',
+      [step_goal, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      step_goal: step_goal,
+    });
+  } catch (err) {
+    console.error('DB error in PUT /api/step-goal:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 3) GET waterintake_goal
+// GET /api/waterintake-goal/:userId
+app.get('/api/waterintake-goal/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT waterintake_goal FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      waterintake_goal: rows[0].waterintake_goal,
+    });
+  } catch (err) {
+    console.error('DB error in GET /api/waterintake-goal:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 4) UPDATE waterintake_goal
+// PUT /api/waterintake-goal/:userId
+// body: { "waterintake_goal": 2200 }
+app.put('/api/waterintake-goal/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  const { waterintake_goal } = req.body;
+
+  if (waterintake_goal === undefined) {
+    return res.status(400).json({ ok: false, error: 'waterintake_goal is required' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE users SET waterintake_goal = ? WHERE id = ?',
+      [waterintake_goal, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      waterintake_goal: waterintake_goal,
+    });
+  } catch (err) {
+    console.error('DB error in PUT /api/waterintake-goal:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 5) GET user_location (inside/outside)
+// GET /api/user-location/:userId
+app.get('/api/user-location/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT user_location FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      user_location: rows[0].user_location,
+    });
+  } catch (err) {
+    console.error('DB error in GET /api/user-location:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 6) UPDATE user_location
+// PUT /api/user-location/:userId
+// body: { "user_location": "inside" } eller "outside"
+app.put('/api/user-location/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  const { user_location } = req.body;
+
+  if (user_location === undefined) {
+    return res.status(400).json({ ok: false, error: 'user_location is required' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE users SET user_location = ? WHERE id = ?',
+      [user_location, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      user_location: user_location,
+    });
+  } catch (err) {
+    console.error('DB error in PUT /api/user-location:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
 
 // GET plant_status, dog_status, window_status, room_mood
 // ----------------------------------------------

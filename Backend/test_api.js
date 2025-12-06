@@ -14,7 +14,7 @@ const API_BASE_URL =
 async function testAPI() {
   try {
     // Test user info
-    const testUserId = 1;
+    const testUserId = 2;
     const testUsername = 'Kim';
     const testPassword = '1234';
 
@@ -109,7 +109,7 @@ async function testAPI() {
     console.log(`\n🔹 Testing PUT /api/window-status/${testUserId} ...`);
     const updateWindowRes = await axios.put(
       `${API_BASE_URL}/api/window-status/${testUserId}`,
-      { window_status: 1.00 },
+      { window_status: 1.0 },
       { headers: { 'Content-Type': 'application/json' } }
     );
     console.log('Response:', updateWindowRes.data);
@@ -160,6 +160,90 @@ async function testAPI() {
     console.log('last_dog_update  :', rs.last_dog_update);
     console.log('last_room_update :', rs.last_room_update);
     console.log('updated_at       :', rs.updated_at);
+
+    // ------------------------------------------------------------
+    // 15. GET step_goal
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing GET /api/step-goal/${testUserId} ...`);
+    let stepGoalRes = await axios.get(
+      `${API_BASE_URL}/api/step-goal/${testUserId}`
+    );
+    console.log('Response:', stepGoalRes.data);
+
+    // ------------------------------------------------------------
+    // 16. UPDATE step_goal
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing PUT /api/step-goal/${testUserId} ...`);
+    const newStepGoal = 6000;
+    const updateStepGoalRes = await axios.put(
+      `${API_BASE_URL}/api/step-goal/${testUserId}`,
+      { step_goal: newStepGoal },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    console.log('Response:', updateStepGoalRes.data);
+
+    // Re-check step_goal
+    stepGoalRes = await axios.get(
+      `${API_BASE_URL}/api/step-goal/${testUserId}`
+    );
+    console.log('Re-checked step_goal:', stepGoalRes.data.step_goal);
+
+    // ------------------------------------------------------------
+    // 17. GET waterintake_goal
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing GET /api/waterintake-goal/${testUserId} ...`);
+    let waterGoalRes = await axios.get(
+      `${API_BASE_URL}/api/waterintake-goal/${testUserId}`
+    );
+    console.log('Response:', waterGoalRes.data);
+
+    // ------------------------------------------------------------
+    // 18. UPDATE waterintake_goal
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing PUT /api/waterintake-goal/${testUserId} ...`);
+    const newWaterGoal = 2500;
+    const updateWaterGoalRes = await axios.put(
+      `${API_BASE_URL}/api/waterintake-goal/${testUserId}`,
+      { waterintake_goal: newWaterGoal },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    console.log('Response:', updateWaterGoalRes.data);
+
+    // Re-check waterintake_goal
+    waterGoalRes = await axios.get(
+      `${API_BASE_URL}/api/waterintake-goal/${testUserId}`
+    );
+    console.log('Re-checked waterintake_goal:', waterGoalRes.data.waterintake_goal);
+
+    // ------------------------------------------------------------
+    // 19. GET user_location
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing GET /api/user-location/${testUserId} ...`);
+    let ulRes = await axios.get(
+      `${API_BASE_URL}/api/user-location/${testUserId}`
+    );
+    console.log('Response:', ulRes.data);
+
+    // ------------------------------------------------------------
+    // 20. UPDATE user_location
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing PUT /api/user-location/${testUserId} ...`);
+    const newUserLocation = ulRes.data.user_location === 'inside'
+      ? 'outside'
+      : 'inside';
+
+    const updateUlRes = await axios.put(
+      `${API_BASE_URL}/api/user-location/${testUserId}`,
+      { user_location: newUserLocation },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    console.log('Response:', updateUlRes.data);
+
+    // Re-check user_location
+    ulRes = await axios.get(
+      `${API_BASE_URL}/api/user-location/${testUserId}`
+    );
+    console.log('Re-checked user_location:', ulRes.data.user_location);
 
     // ------------------------------------------------------------
     console.log('\nAll tests finished.\n');
