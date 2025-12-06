@@ -34,17 +34,20 @@ app.use(express.json());
 //
 // Routes
 //
+//
 
+// GET plant_status, dog_status, window_status, room_mood
+// ----------------------------------------------
+// All will be queried from the table: room_status by the given user_id
 //
-// Route: Room mood
-//
-// Get Room mood for a specific user
-app.get('/api/room-mood/:userId', async (req, res) => {
+
+// 1) Plant Status
+app.get('/api/plant-status/:userId', async (req, res) => {
   const userId = req.params.userId;
 
   try {
     const [rows] = await pool.query(
-      'SELECT room_mood FROM room_status WHERE user_id = ?',
+      'SELECT plant_status FROM room_status WHERE user_id = ?',
       [userId]
     );
 
@@ -52,22 +55,19 @@ app.get('/api/room-mood/:userId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
 
-    res.json({
+    return res.json({
       ok: true,
-      room_mood: rows[0].room_mood  // ← skicka room mood tillbaka här 0,1,2,3,...
+      plant_status: rows[0].plant_status
     });
+
   } catch (err) {
-    console.error('DB error in /api/room-mood:', err);
-    res.status(500).json({ ok: false, error: 'Database error' });
+    console.error('DB error (plant):', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
 
 
-
-//
-// Route: Dog Status
-//
-// Get dog status for a specific user
+// 2) Dog Status
 app.get('/api/dog-status/:userId', async (req, res) => {
   const userId = req.params.userId;
 
@@ -81,13 +81,66 @@ app.get('/api/dog-status/:userId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
 
-    res.json({
+    return res.json({
       ok: true,
-      dog_status: rows[0].dog_status  // skicka tillbaka dog status 0,1,2.,,,
+      dog_status: rows[0].dog_status
     });
+
   } catch (err) {
-    console.error('DB error:', err);
-    res.status(500).json({ ok: false, error: 'Database error' });
+    console.error('DB error (dog):', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 3) Window Status
+app.get('/api/window-status/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT window_status FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      window_status: rows[0].window_status
+    });
+
+  } catch (err) {
+    console.error('DB error (window):', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+
+// 4) Room Mood
+app.get('/api/room-mood/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT room_mood FROM room_status WHERE user_id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      room_mood: rows[0].room_mood
+    });
+
+  } catch (err) {
+    console.error('DB error (room):', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
 
@@ -123,28 +176,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
-
-/*
-
-Flutter eller klient skickar JSON:
-{ "username": "Kim", "password": "1234" }
-
-Om det gick bra, svara med JSON:
-{
-  "ok": true,
-  "user": {
-    "id": 1,
-    "username": "Kim"
-  }
-}
-Om det gick dåligt, svara med JSON:
-{
-  "ok": false,
-  "error": "Invalid username or password"
-}
-
-*/
-
 
 // ------------------- For testing if server is running ------------------- 
 // simple ping route

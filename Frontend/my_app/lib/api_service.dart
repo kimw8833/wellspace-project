@@ -4,22 +4,21 @@ import 'package:http/http.dart' as http;
 class ApiService {
   //final String baseUrl = 'http://127.0.0.1:8000'; //for testing locally
   final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
-
-
+  
   //
-  // ROOM MOOD FUNCTION
+  // PLANT STATUS FUNCTION
   //
-  Future<int?> getRoomMood(int userId) async {
-    final url = Uri.parse('$baseUrl/api/room-mood/$userId');
+  Future<double?> getPlantStatus(int userId) async {
+    final url = Uri.parse('$baseUrl/api/plant-status/$userId');
 
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data["room_mood"]; // ← får room mood 0,1,2,...
+        return double.tryParse(data["plant_status"]);
       } else {
-        return null; // error
+        return null;
       }
     } catch (e) {
       return null;
@@ -29,7 +28,7 @@ class ApiService {
   //
   // DOG STATUS FUNCTION
   //
-  Future<int?> getDogStatus(int userId) async {
+  Future<double?> getDogStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/dog-status/$userId');
 
     try {
@@ -37,9 +36,49 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data["dog_status"]; // ← får dog status 0,1,2,...
+        return double.tryParse(data["dog_status"]);
       } else {
-        return null; // error
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // WINDOW STATUS FUNCTION
+  //
+  Future<double?> getWindowStatus(int userId) async {
+    final url = Uri.parse('$baseUrl/api/window-status/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return double.tryParse(data["window_status"]);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // ROOM MOOD FUNCTION
+  //
+  Future<double?> getRoomMood(int userId) async {
+    final url = Uri.parse('$baseUrl/api/room-mood/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return double.tryParse(data["room_mood"]); 
+      } else {
+        return null;
       }
     } catch (e) {
       return null;
