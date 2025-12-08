@@ -229,6 +229,7 @@ app.get('/api/plant-status/:userId', async (req, res) => {
   const userId = req.params.userId;
 
   try {
+    // läsa plant_status
     const [rows] = await pool.query(
       'SELECT plant_status FROM room_status WHERE user_id = ?',
       [userId]
@@ -237,6 +238,12 @@ app.get('/api/plant-status/:userId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
+
+    // updatera tid vid hämtning (read timestamp)
+    await pool.query(
+      'UPDATE room_status SET last_plant_read = NOW() WHERE user_id = ?',
+      [userId]
+    );
 
     return res.json({
       ok: true,
@@ -248,7 +255,6 @@ app.get('/api/plant-status/:userId', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
-
 
 // 2) Dog Status
 app.get('/api/dog-status/:userId', async (req, res) => {
@@ -263,6 +269,11 @@ app.get('/api/dog-status/:userId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
+
+    await pool.query(
+      'UPDATE room_status SET last_dog_read = NOW() WHERE user_id = ?',
+      [userId]
+    );
 
     return res.json({
       ok: true,
@@ -290,6 +301,11 @@ app.get('/api/window-status/:userId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
 
+    await pool.query(
+      'UPDATE room_status SET last_window_read = NOW() WHERE user_id = ?',
+      [userId]
+    );
+
     return res.json({
       ok: true,
       window_status: rows[0].window_status
@@ -300,7 +316,6 @@ app.get('/api/window-status/:userId', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
-
 
 // 4) Room Mood
 app.get('/api/room-mood/:userId', async (req, res) => {
@@ -316,6 +331,11 @@ app.get('/api/room-mood/:userId', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'User not found' });
     }
 
+    await pool.query(
+      'UPDATE room_status SET last_room_read = NOW() WHERE user_id = ?',
+      [userId]
+    );
+
     return res.json({
       ok: true,
       room_mood: rows[0].room_mood
@@ -326,6 +346,7 @@ app.get('/api/room-mood/:userId', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
+
 
 //
 // Update Routes
@@ -410,7 +431,6 @@ app.put('/api/dog-status/:userId', async (req, res) => {
 });
 
 
-
 // 3) Update Window Status
 // Client sends JSON: { "window_status": 1.00 }
 app.put('/api/window-status/:userId', async (req, res) => {
@@ -426,7 +446,7 @@ app.put('/api/window-status/:userId', async (req, res) => {
       `
       UPDATE room_status
       SET window_status = ?, 
-          last_room_update = NOW()
+          last_window_update = NOW()
       WHERE user_id = ?
       `,
       [window_status, userId]
@@ -445,7 +465,6 @@ app.put('/api/window-status/:userId', async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Database error' });
   }
 });
-
 
 
 // 4) Update Room Mood
@@ -483,6 +502,7 @@ app.put('/api/room-mood/:userId', async (req, res) => {
   }
 });
 
+
 // Get full room_status row for debugging (includes timestamps)
 // Example: GET /api/room-status/1
 app.get('/api/room-status/:userId', async (req, res) => {
@@ -497,7 +517,12 @@ app.get('/api/room-status/:userId', async (req, res) => {
               room_mood,
               last_plant_update,
               last_dog_update,
+              last_window_update,
               last_room_update,
+              last_plant_read,
+              last_dog_read,
+              last_window_read,
+              last_room_read,
               updated_at
        FROM room_status
        WHERE user_id = ?`,

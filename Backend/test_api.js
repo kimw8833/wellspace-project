@@ -14,9 +14,9 @@ const API_BASE_URL =
 async function testAPI() {
   try {
     // Test user info
-    const testUserId = 2;
     const testUsername = 'Kim';
     const testPassword = '1234';
+    let testUserId; // จะเซ็ตหลังจาก login สำเร็จ
 
     // ------------------------------------------------------------
     // 1. Test server availability
@@ -50,8 +50,17 @@ async function testAPI() {
     );
     console.log('Response:', loginRes.data);
 
+    if (!loginRes.data.ok) {
+      console.error('❌ Login failed, aborting tests.');
+      return;
+    }
+
     const loggedInUser = loginRes.data.user;
     console.log('Logged in user:', loggedInUser);
+
+    // ใช้ id จาก login ให้ตรงกับ DB เสมอ (Kim = 2 ตอนนี้)
+    testUserId = loggedInUser.id;
+    console.log('Using testUserId =', testUserId);
 
     // ------------------------------------------------------------
     // 5. GET plant status
@@ -151,15 +160,20 @@ async function testAPI() {
 
     const rs = fullStatusRes.data.room_status;
     console.log('\nCurrent room_status row:');
-    console.log('user_id          :', rs.user_id);
-    console.log('plant_status     :', rs.plant_status);
-    console.log('dog_status       :', rs.dog_status);
-    console.log('window_status    :', rs.window_status);
-    console.log('room_mood        :', rs.room_mood);
-    console.log('last_plant_update:', rs.last_plant_update);
-    console.log('last_dog_update  :', rs.last_dog_update);
-    console.log('last_room_update :', rs.last_room_update);
-    console.log('updated_at       :', rs.updated_at);
+    console.log('user_id             :', rs.user_id);
+    console.log('plant_status        :', rs.plant_status);
+    console.log('dog_status          :', rs.dog_status);
+    console.log('window_status       :', rs.window_status);
+    console.log('room_mood           :', rs.room_mood);
+    console.log('last_plant_update   :', rs.last_plant_update);
+    console.log('last_dog_update     :', rs.last_dog_update);
+    console.log('last_window_update  :', rs.last_window_update);
+    console.log('last_room_update    :', rs.last_room_update);
+    console.log('last_plant_read     :', rs.last_plant_read);
+    console.log('last_dog_read       :', rs.last_dog_read);
+    console.log('last_window_read    :', rs.last_window_read);
+    console.log('last_room_read      :', rs.last_room_read);
+    console.log('updated_at          :', rs.updated_at);
 
     // ------------------------------------------------------------
     // 15. GET step_goal

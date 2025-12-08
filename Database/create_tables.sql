@@ -34,15 +34,22 @@ INSERT INTO users (username, password, step_goal, waterintake_goal, user_locatio
 CREATE TABLE room_status (
   user_id INT NOT NULL,
 
-    plant_status    DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    dog_status      DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    window_status   DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    room_mood       DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+  plant_status    DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+  dog_status      DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+  window_status   DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+  room_mood       DECIMAL(3,2) NOT NULL DEFAULT 0.00,
 
+  -- update timestamps (vid ändringen av värden)
+  last_plant_update   TIMESTAMP NULL,
+  last_dog_update     TIMESTAMP NULL,
+  last_window_update  TIMESTAMP NULL,
+  last_room_update    TIMESTAMP NULL, 
 
-  last_plant_update TIMESTAMP NULL,
-  last_dog_update   TIMESTAMP NULL,
-  last_room_update  TIMESTAMP NULL,
+  -- read timestamps (vid hämntning av värden)
+  last_plant_read   TIMESTAMP NULL,
+  last_dog_read     TIMESTAMP NULL,
+  last_window_read  TIMESTAMP NULL,
+  last_room_read    TIMESTAMP NULL,
 
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
              ON UPDATE CURRENT_TIMESTAMP,
@@ -52,7 +59,7 @@ CREATE TABLE room_status (
   CONSTRAINT fk_room_status_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
-); 
+);
 
 
 -- create default 1 room_status row per user

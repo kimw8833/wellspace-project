@@ -136,5 +136,31 @@ Future<void> main() async {
   final recheckLoc = await api.getUserLocation(userId);
   print("Re-checked user_location = $recheckLoc\n");
 
+  // ---------------------------------------------------------
+  // 14) FULL ROOM STATUS (statuses + timestamps)
+  // ---------------------------------------------------------
+  print("🔹 Testing getFullRoomStatus() ...");
+  final fullStatus = await api.getFullRoomStatus(userId);
+
+  if (fullStatus != null) {
+    print("Full room_status from backend:");
+    print("  user_id            : ${fullStatus['user_id']}");
+    print("  plant_status       : ${fullStatus['plant_status']}");
+    print("  dog_status         : ${fullStatus['dog_status']}");
+    print("  window_status      : ${fullStatus['window_status']}");
+    print("  room_mood          : ${fullStatus['room_mood']}");
+    print("  last_plant_update  : ${fullStatus['last_plant_update']}");
+    print("  last_dog_update    : ${fullStatus['last_dog_update']}");
+    print("  last_window_update : ${fullStatus['last_window_update']}");
+    print("  last_room_update   : ${fullStatus['last_room_update']}");
+    print("  last_plant_read    : ${fullStatus['last_plant_read']}");
+    print("  last_dog_read      : ${fullStatus['last_dog_read']}");
+    print("  last_window_read   : ${fullStatus['last_window_read']}");
+    print("  last_room_read     : ${fullStatus['last_room_read']}");
+    print("  updated_at         : ${fullStatus['updated_at']}\n");
+  } else {
+    print("Failed to fetch full room status.\n");
+  }
+
   print("==== DONE TESTING ====");
 }

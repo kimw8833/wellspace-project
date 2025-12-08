@@ -4,9 +4,34 @@ import 'package:http/http.dart' as http;
 class ApiService {
   //final String baseUrl = 'http://127.0.0.1:8000'; //for testing locally
   final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
-  
+
   //
-  // --- NEW: STEP GOAL / WATER GOAL / USER LOCATION ---
+  // GET FULL ROOM STATUS (statuses + timestamps)
+  //
+  Future<Map<String, dynamic>?> getFullRoomStatus(int userId) async {
+    final url = Uri.parse('$baseUrl/api/room-status/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data["ok"] == true && data["room_status"] != null) {
+          return Map<String, dynamic>.from(data["room_status"]);
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  //
+  // --- STEP GOAL / WATER GOAL / USER LOCATION ---
   //
 
   //
@@ -152,7 +177,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return double.tryParse(data["plant_status"]);
+        final value = data["plant_status"];
+        if (value is num) {
+          return value.toDouble();
+        }
+        return double.tryParse(value.toString());
       } else {
         return null;
       }
@@ -164,7 +193,6 @@ class ApiService {
   //
   // UPDATE PLANT STATUS
   //
-  // Exempleuse: await api.updatePlantStatus(1, 0.20);
   Future<bool> updatePlantStatus(int userId, double newValue) async {
     final url = Uri.parse('$baseUrl/api/plant-status/$userId');
 
@@ -177,11 +205,7 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       return false;
     }
@@ -198,7 +222,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return double.tryParse(data["dog_status"]);
+        final value = data["dog_status"];
+        if (value is num) {
+          return value.toDouble();
+        }
+        return double.tryParse(value.toString());
       } else {
         return null;
       }
@@ -222,11 +250,7 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       return false;
     }
@@ -243,7 +267,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return double.tryParse(data["window_status"]);
+        final value = data["window_status"];
+        if (value is num) {
+          return value.toDouble();
+        }
+        return double.tryParse(value.toString());
       } else {
         return null;
       }
@@ -267,11 +295,7 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       return false;
     }
@@ -288,7 +312,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return double.tryParse(data["room_mood"]); 
+        final value = data["room_mood"];
+        if (value is num) {
+          return value.toDouble();
+        }
+        return double.tryParse(value.toString());
       } else {
         return null;
       }
@@ -312,11 +340,7 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       return false;
     }
