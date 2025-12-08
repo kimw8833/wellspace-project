@@ -15,8 +15,9 @@ class MyRoomPage extends StatefulWidget {
 }
 
 class _RoomPageState extends State<MyRoomPage> {
-  late Future<int?> roomMood;
-  late Future<int?> dogMood;
+  late Future<double?> roomStatus;
+  late Future<double?> dogStatus;
+  late Future<double?> plantStatus;
 
   // ---- SIMULATED TIME ----
   late DateTime _simulatedTime;
@@ -69,8 +70,9 @@ class _RoomPageState extends State<MyRoomPage> {
       _simulatedTime.day,
     );
 
-    roomMood = ApiService().getRoomMood(widget.playerId);
-    dogMood = ApiService().getDogStatus(widget.playerId);
+    roomStatus = ApiService().getRoomMood(widget.playerId);
+    dogStatus = ApiService().getDogStatus(widget.playerId);
+    plantStatus = ApiService().getPlantStatus(widget.playerId);
   }
 
   @override
@@ -112,8 +114,7 @@ class _RoomPageState extends State<MyRoomPage> {
 
   /// Manual daily advance: use today's water, then move date/time by 1 day.
   void _advanceManualOneDay() {
-    final double ratio =
-        (_waterToday / _dailyGoal).clamp(0.0, 1.0).toDouble();
+    final double ratio = (_waterToday / _dailyGoal).clamp(0.0, 1.0).toDouble();
 
     _applyDailyUpdate(ratio);
 
@@ -496,10 +497,10 @@ class _RoomPageState extends State<MyRoomPage> {
                           alignment: WrapAlignment.center,
                           children: [
                             FancyDebugButton(
-                              label: _autoSimRunning &&
-                                      _simSpeedMultiplier == 1.0
-                                  ? "Pause"
-                                  : "Play 1x",
+                              label:
+                                  _autoSimRunning && _simSpeedMultiplier == 1.0
+                                      ? "Pause"
+                                      : "Play 1x",
                               onPressed: () {
                                 if (_autoSimRunning &&
                                     _simSpeedMultiplier == 1.0) {
@@ -510,10 +511,10 @@ class _RoomPageState extends State<MyRoomPage> {
                               },
                             ),
                             FancyDebugButton(
-                              label: _autoSimRunning &&
-                                      _simSpeedMultiplier == 10.0
-                                  ? "Pause"
-                                  : "Play 10x",
+                              label:
+                                  _autoSimRunning && _simSpeedMultiplier == 10.0
+                                      ? "Pause"
+                                      : "Play 10x",
                               onPressed: () {
                                 if (_autoSimRunning &&
                                     _simSpeedMultiplier == 10.0) {
@@ -620,16 +621,14 @@ class _RoomPageState extends State<MyRoomPage> {
                               ),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final double t = _plantHealth
-                                      .clamp(0.0, 1.0)
-                                      .toDouble();
-                                  final double w =
-                                      constraints.maxWidth * t;
+                                  final double t =
+                                      _plantHealth.clamp(0.0, 1.0).toDouble();
+                                  final double w = constraints.maxWidth * t;
                                   return Align(
                                     alignment: Alignment.centerLeft,
                                     child: AnimatedContainer(
-                                      duration: const Duration(
-                                          milliseconds: 250),
+                                      duration:
+                                          const Duration(milliseconds: 250),
                                       width: w,
                                       decoration: BoxDecoration(
                                         borderRadius:
