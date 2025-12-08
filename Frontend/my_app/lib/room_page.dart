@@ -15,10 +15,10 @@ class MyRoomPage extends StatefulWidget {
 }
 
 class _RoomPageState extends State<MyRoomPage> {
-  late Future<double?> roomStatus;
-  late Future<double?> dogStatus;
-  late Future<double?> plantStatus;
-  late Future<double?> windowStatus;
+  late Future<double?> outdatedRoomStatus;
+  late Future<double?> outdatedDogStatus;
+  late Future<double?> outdatedPlantStatus;
+  late Future<double?> outdatedWindowStatus;
 
   // ---- SIMULATED TIME ----
   late DateTime _simulatedTime;
@@ -71,10 +71,10 @@ class _RoomPageState extends State<MyRoomPage> {
       _simulatedTime.day,
     );
 
-    roomStatus = ApiService().getRoomMood(widget.playerId);
-    dogStatus = ApiService().getDogStatus(widget.playerId);
-    plantStatus = ApiService().getPlantStatus(widget.playerId);
-    windowStatus = ApiService().getWindowStatus(widget.playerId);
+    outdatedRoomStatus = ApiService().getRoomMood(widget.playerId);
+    outdatedDogStatus = ApiService().getDogStatus(widget.playerId);
+    outdatedPlantStatus = ApiService().getPlantStatus(widget.playerId);
+    outdatedWindowStatus = ApiService().getWindowStatus(widget.playerId);
   }
 
   @override
