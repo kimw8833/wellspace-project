@@ -18,6 +18,7 @@ class _RoomPageState extends State<MyRoomPage> {
   late Future<double?> roomStatus;
   late Future<double?> dogStatus;
   late Future<double?> plantStatus;
+  late Future<double?> windowStatus;
 
   // ---- SIMULATED TIME ----
   late DateTime _simulatedTime;
@@ -73,6 +74,7 @@ class _RoomPageState extends State<MyRoomPage> {
     roomStatus = ApiService().getRoomMood(widget.playerId);
     dogStatus = ApiService().getDogStatus(widget.playerId);
     plantStatus = ApiService().getPlantStatus(widget.playerId);
+    windowStatus = ApiService().getWindowStatus(widget.playerId);
   }
 
   @override
