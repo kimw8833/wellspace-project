@@ -60,8 +60,23 @@ flutter:
 
   assets:
     - assets/images/Basic00.png
+    - assets/images/base_plant.png
+    - assets/images/dead_plant.png
+    - assets/images/wilted_plant.png
+    - assets/images/lush_plant.png
     - assets/images/roomHappy.png
-    - assets/images/roomSad.png
+    - assets/images/rooms/night_room.png
+    - assets/images/rooms/daylight_room.png
+    - assets/images/plants/stage_1_plant.png
+    - assets/images/plants/stage_2_plant.png
+    - assets/images/plants/stage_3_plant.png
+    - assets/images/plants/stage_4_plant.png
+    - assets/images/plants/stage_5_plant.png
+    - assets/images/dogs/happy_dog.png
+    - assets/images/dogs/sad_dog.png
+    - assets/images/dogs/neutral_dog.png
+
+    
 
   # To add assets to your application, add an assets section, like this:
   # assets:
