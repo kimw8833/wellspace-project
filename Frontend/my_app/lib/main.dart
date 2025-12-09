@@ -1,6 +1,10 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
-import 'room_page.dart';
-import 'api_service.dart';
+
+// UPDATED IMPORTS — matches your new structure
+import 'pages/room_page.dart';
+import 'services/api_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,40 +41,40 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromRGBO(146, 202, 170, 1),
+        backgroundColor: const Color.fromRGBO(146, 202, 170, 1),
         title: Text(widget.title),
       ),
       body: Center(
         child: Column(
           children: [
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
             SizedBox(
               width: 400,
               child: TextField(
                 controller: _usernameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Username',
                   border: OutlineInputBorder(),
                 ),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             SizedBox(
               width: 400,
               child: TextField(
                 controller: _passwordController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(),
                 ),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             SizedBox(
               width: 400,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromRGBO(146, 202, 170, 1),
+                  backgroundColor: const Color.fromRGBO(146, 202, 170, 1),
                 ),
                 onPressed: () async {
                   try {
@@ -89,18 +93,19 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                     } else {
-                      final errorMessage = loginData["error"] ?? "Login failed";
+                      final errorMessage =
+                          loginData["error"] ?? "Login failed";
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(errorMessage)),
                       );
                     }
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("An error occurred")),
+                      const SnackBar(content: Text("An error occurred")),
                     );
                   }
                 },
-                child: Text(
+                child: const Text(
                   "Login",
                   style: TextStyle(
                     color: Colors.black,
