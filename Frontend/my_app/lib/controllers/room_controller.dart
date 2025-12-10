@@ -21,7 +21,8 @@ class RoomController extends ChangeNotifier {
 
   // Daily counters
   int waterToday = 0;
-  static const int dailyGoal = 2000; // same as before
+  int dailyWaterGoal = 2000; // same as before
+  int dailyStepGoal = 10000;
 
   // Timer for auto-simulation
   Timer? _simTimer;
@@ -38,7 +39,7 @@ class RoomController extends ChangeNotifier {
       0,
       0,
     );
-    dog = DogModel(startOfDay: start);
+    dog = DogModel(startOfDay: start, stepGoal: dailyStepGoal);
 
     _loadInitialBackendState();
   }
@@ -78,7 +79,7 @@ class RoomController extends ChangeNotifier {
   //                DAILY HYDRATION → PLANT UPDATE
   // ===================================================
   void applyDailyUpdate() {
-    final ratio = (waterToday / dailyGoal).clamp(0.0, 1.0);
+    final ratio = (waterToday / dailyWaterGoal).clamp(0.0, 1.0);
     plant.applyDailyUpdate(ratio);
     waterToday = 0;
   }
@@ -100,7 +101,7 @@ class RoomController extends ChangeNotifier {
   //                DOG STEP UPDATE
   // ===================================================
   void setStepsToday(int steps) {
-    final clamped = steps.clamp(0, DogModel.stepGoal);
+    final clamped = steps.clamp(0, dailyStepGoal);
     dog.debugSetSteps(clamped, time.simulatedTime);
     notifyListeners();
   }
@@ -213,6 +214,18 @@ class RoomController extends ChangeNotifier {
   void addWater(int ml) {
     waterToday += ml;
     if (waterToday < 0) waterToday = 0;
+    notifyListeners();
+  }
+
+  // ===================================================
+  //               Update settings
+  // ===================================================
+  void updateSettings(int newSteps, int newWater) {
+    dailyStepGoal = newSteps;
+    dailyWaterGoal = newWater;
+
+    dog.stepGoal = newSteps;
+
     notifyListeners();
   }
 

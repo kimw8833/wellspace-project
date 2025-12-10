@@ -3,7 +3,7 @@
 import 'package:flutter/foundation.dart'; // ONLY for debug-printing if needed; safe to remove.
 
 class DogModel {
-  double mood;                    // 0..1
+  double mood; // 0..1
   bool lockedHappy;
   int stepsToday;
   int stepsAtLastTick;
@@ -11,7 +11,7 @@ class DogModel {
   bool earlyRuleApplied;
 
   // Constants from your code
-  static const int stepGoal = 10000;
+  int stepGoal;
   static const int earlySteps = 1000;
   static const Duration tickInterval = Duration(minutes: 30);
   static const double gainPer1000 = 0.18;
@@ -22,6 +22,7 @@ class DogModel {
     this.lockedHappy = false,
     this.stepsToday = 0,
     this.stepsAtLastTick = 0,
+    required this.stepGoal,
     DateTime? startOfDay,
     this.earlyRuleApplied = false,
   }) : lastTickTime = startOfDay ?? DateTime.now();

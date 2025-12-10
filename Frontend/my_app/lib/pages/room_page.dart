@@ -10,6 +10,7 @@ import '../widgets/sprites/plant_sprite.dart';
 import '../widgets/sprites/dog_sprite.dart';
 import '../widgets/debug/debug_panel.dart';
 import '../widgets/room_menu_button.dart'; // menu button
+import '../widgets/settings_dialog.dart';
 
 // utils
 import '../utils/constants.dart';
@@ -60,6 +61,21 @@ class _MyRoomPageState extends State<MyRoomPage> {
   void _logout() {
     // EXACT same behavior as the old bottom-right logout button
     Navigator.of(context).pop();
+  }
+
+  void _openSettingsDialog() async {
+    final result = await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => SettingsDialog(
+        currentStepGoal: controller.dailyStepGoal,
+        currentWaterGoal: controller.dailyWaterGoal,
+      ),
+    );
+
+    if (result != null) {
+      controller.updateSettings(result["steps"], result["water"]);
+    }
   }
 
   @override
@@ -171,7 +187,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
                   // dog
                   stepsToday: controller.dog.stepsToday,
-                  dogStepGoal: DogModel.stepGoal,
+                  dogStepGoal: controller.dailyStepGoal,
                   dogMood: controller.dog.mood,
                   dogMoodLabel: _dogHealthLabel(controller.dog.mood),
                   dogSprite: DogSprite(mood: controller.dog.mood),
@@ -217,7 +233,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     RoomMenuButton(
                       onAchievements: () => print("Achievements tapped"),
                       onFriends: () => print("Friends tapped"),
-                      onSettings: () => print("Settings tapped"),
+                      onSettings: _openSettingsDialog,
                       onLogout:
                           _logout, // <--- uses the exact same logic as old button
                     ),
