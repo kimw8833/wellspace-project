@@ -2,28 +2,21 @@
 
 import 'package:flutter/material.dart';
 
-// controller
 import '../controllers/room_controller.dart';
-
-// widgets
 import '../widgets/sprites/plant_sprite.dart';
 import '../widgets/sprites/dog_sprite.dart';
 import '../widgets/debug/debug_panel.dart';
-import '../widgets/room_menu_button.dart'; // menu button
+import '../widgets/room_menu_button.dart';
 import '../widgets/settings_dialog.dart';
 
-// utils
 import '../utils/constants.dart';
 import '../utils/formatting.dart';
-
-// models
 import '../models/dog_model.dart';
-import '../models/plant_model.dart';
 
 class MyRoomPage extends StatefulWidget {
-  final int playerId;
+  final int userId;
 
-  const MyRoomPage({super.key, required this.playerId});
+  const MyRoomPage({super.key, required this.userId});
 
   @override
   State<MyRoomPage> createState() => _MyRoomPageState();
@@ -33,12 +26,12 @@ class _MyRoomPageState extends State<MyRoomPage> {
   late RoomController controller;
   bool _debugVisible = false;
 
-  bool get isDeveloper => widget.playerId == 1;
+  bool get isDeveloper => widget.userId == 1;
 
   @override
   void initState() {
     super.initState();
-    controller = RoomController(widget.playerId);
+    controller = RoomController(widget.userId);
     controller.addListener(_onControllerUpdate);
   }
 
@@ -53,17 +46,10 @@ class _MyRoomPageState extends State<MyRoomPage> {
     setState(() {});
   }
 
-  void _toggleDebug() {
-    if (!isDeveloper) return;
-    setState(() => _debugVisible = !_debugVisible);
-  }
-
-  void _logout() {
-    // EXACT same behavior as the old bottom-right logout button
-    Navigator.of(context).pop();
-  }
-
   void _openSettingsDialog() async {
+
+    print("🛠 Opening settings with stepGoal=${controller.dailyStepGoal}, waterGoal=${controller.dailyWaterGoal}");
+
     final result = await showDialog(
       context: context,
       barrierDismissible: true,
@@ -80,8 +66,18 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = controller.state;
+    // ===========================================
+    //   NEW: LOADING STATE (IMPORTANT!)
+    // ===========================================
+    if (controller.isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
+    final state = controller.state;
     final screenW = MediaQuery.of(context).size.width;
     final screenH = MediaQuery.of(context).size.height;
 
@@ -94,9 +90,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // ============================
-          //         BACKGROUND
-          // ============================
+          // BACKGROUND
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -108,9 +102,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // ============================
-          //        PLANT SPRITE
-          // ============================
+          // PLANT
           Positioned(
             left: leftPlantX,
             bottom: bottomPlantY,
@@ -120,9 +112,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // ============================
-          //         DOG SPRITE
-          // ============================
+          // DOG
           Positioned(
             right: rightDogX,
             bottom: bottomDogY,
@@ -132,95 +122,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // ============================
-          //     TOP-LEFT TIME DISPLAY
-          // ============================
-          if (_debugVisible && isDeveloper)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.access_time,
-                          color: Colors.white70,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          Formatting.timestamp(controller.time.simulatedTime),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // ============================
-          //        DEBUG PANEL (LEFT)
-          // ============================
-          if (_debugVisible && isDeveloper)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: DebugPanel(
-                  simulatedTime: controller.time.simulatedTime,
-                  autoSimLabel: _autoSimLabel(),
-
-                  // dog
-                  stepsToday: controller.dog.stepsToday,
-                  dogStepGoal: controller.dailyStepGoal,
-                  dogMood: controller.dog.mood,
-                  dogMoodLabel: _dogHealthLabel(controller.dog.mood),
-                  dogSprite: DogSprite(mood: controller.dog.mood),
-
-                  // plant
-                  plantHealth: controller.plant.health,
-                  hydrationSmoothed: controller.plant.hydrationSmoothed,
-                  plantHealthLabel: _plantHealthLabel(controller.plant.health),
-                  plantColor: _plantColor(controller.plant.health),
-
-                  // time controls
-                  onAddDayMinus1: () => controller.addDays(-1),
-                  onAddHourMinus1: () => controller.addHours(-1),
-                  onAddHourPlus1: () => controller.addHours(1),
-                  onAddDayPlus1: () => controller.addDays(1),
-
-                  // auto sim
-                  onPlay1x: () => controller.playAutoSim(1.0),
-                  onPlay10x: () => controller.playAutoSim(10.0),
-                  onPause: () => controller.pauseAutoSim(),
-
-                  // scenario
-                  onScenarioChanged: (s) => controller.setScenario(s),
-
-                  // dog steps
-                  onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
-                ),
-              ),
-            ),
-
-          // ============================
-          //     MENU + DEBUG BUTTON (TOP RIGHT)
-          // ============================
+          // MENU + DEBUG BUTTONS
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -229,76 +131,62 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // MENU
                     RoomMenuButton(
-                      onAchievements: () => print("Achievements tapped"),
-                      onFriends: () => print("Friends tapped"),
                       onSettings: _openSettingsDialog,
-                      onLogout:
-                          _logout, // <--- uses the exact same logic as old button
+                      onLogout: () => Navigator.of(context).pop(),
+                      onAchievements: () {},
+                      onFriends: () {},
                     ),
-
-                    const SizedBox(height: 10),
-
-                    // DEBUG BUTTON
                     if (isDeveloper)
                       IconButton(
                         icon: Icon(
                           _debugVisible
                               ? Icons.bug_report
                               : Icons.bug_report_outlined,
-                          size: 22,
                           color: Colors.white.withOpacity(0.7),
+                          size: 22,
                         ),
-                        onPressed: _toggleDebug,
+                        onPressed: () =>
+                            setState(() => _debugVisible = !_debugVisible),
                       ),
                   ],
                 ),
               ),
             ),
           ),
+
+          // DEBUG PANEL (ONLY IF DEV)
+          if (_debugVisible && isDeveloper)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: DebugPanel(
+                  simulatedTime: controller.time.simulatedTime,
+                  autoSimLabel: "",
+                  stepsToday: controller.dog?.stepsToday ?? 0,
+                  dogStepGoal: controller.dailyStepGoal,
+                  dogMood: controller.dog?.mood ?? 0.5,
+                  dogMoodLabel: "",
+                  dogSprite: DogSprite(mood: controller.dog?.mood ?? 0.5),
+                  plantHealth: controller.plant.health,
+                  hydrationSmoothed: controller.plant.hydrationSmoothed,
+                  plantHealthLabel: "",
+                  plantColor: Colors.white,
+                  onAddDayMinus1: () => controller.addDays(-1),
+                  onAddHourMinus1: () => controller.addHours(-1),
+                  onAddHourPlus1: () => controller.addHours(1),
+                  onAddDayPlus1: () => controller.addDays(1),
+                  onPlay1x: () => controller.playAutoSim(1),
+                  onPlay10x: () => controller.playAutoSim(10),
+                  onPause: () => controller.pauseAutoSim(),
+                  onScenarioChanged: (s) => controller.setScenario(s),
+                  onDogStepsChanged: (v) =>
+                      controller.setStepsToday(v.toInt()),
+                ),
+              ),
+            ),
         ],
       ),
     );
-  }
-
-  // =========================================================
-  //                    UI HELPERS
-  // =========================================================
-
-  String _plantHealthLabel(double s) {
-    if (s < 0.2) return 'Dead / barely hanging on';
-    if (s < 0.4) return 'Very wilted';
-    if (s < 0.6) return 'Not great, needs care';
-    if (s < 0.8) return 'Doing pretty well';
-    return 'Lush & thriving';
-  }
-
-  Color _plantColor(double s) {
-    final t = s.clamp(0.0, 1.0).toDouble();
-    return Color.lerp(const Color(0xFF6B4226), const Color(0xFF4CAF50), t)!;
-  }
-
-  String _dogHealthLabel(double d) {
-    if (d < 0.2) return 'Very sad / restless';
-    if (d < 0.4) return 'Quite unhappy';
-    if (d < 0.6) return 'Neutral / okay';
-    if (d < 0.8) return 'Happy';
-    return 'Very happy & energetic';
-  }
-
-  String _autoSimLabel() {
-    final scenario = switch (controller.time.scenario) {
-      'dry' => 'Dry (0.2)',
-      'perfect' => 'Perfect (1.0)',
-      _ => 'OK (0.6)',
-    };
-
-    if (!controller.time.autoSimRunning) {
-      return "Scenario: $scenario • Paused";
-    } else {
-      return "Scenario: $scenario • "
-          "${controller.time.speedMultiplier.toStringAsFixed(0)}x speed";
-    }
   }
 }

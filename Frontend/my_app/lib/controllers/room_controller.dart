@@ -21,8 +21,11 @@ class RoomController extends ChangeNotifier {
 
   // Daily counters
   int waterToday = 0;
-  int dailyWaterGoal = 2000; // same as before
-  int dailyStepGoal = 10000;
+  int dailyWaterGoal = 2000; // default, overridden by backend
+  int dailyStepGoal = 10000; // default, overridden by backend
+
+  // Loading state so UI doesn't show before data is ready
+  bool isLoading = true;
 
   // Timer for auto-simulation
   Timer? _simTimer;
@@ -31,7 +34,7 @@ class RoomController extends ChangeNotifier {
     plant = PlantModel();
     time = TimeSimulation();
 
-    // Initialize dog for the start of the day
+    // Create dog with default goal for now; will be updated after backend load
     final start = DateTime(
       time.currentSimulatedDate.year,
       time.currentSimulatedDate.month,
@@ -41,39 +44,67 @@ class RoomController extends ChangeNotifier {
     );
     dog = DogModel(startOfDay: start, stepGoal: dailyStepGoal);
 
-    _loadInitialBackendState();
+    _initialize();
+  }
+
+  // ===================================================
+  //          CORE INITIALIZATION WITH LOADING
+  // ===================================================
+
+  Future<void> _initialize() async {
+    await _loadInitialBackendState();
+    isLoading = false;
+    notifyListeners();
   }
 
   // ===================================================
   //                INITIAL BACKEND FETCH
   // ===================================================
   Future<void> _loadInitialBackendState() async {
+    // ROOM MOOD (unused for now)
     final roomMood = await _api.getRoomMood(userId);
     if (roomMood != null) {
-      // You can choose to map roomMood → plant/dog if needed
+      // map to plant/dog if you ever want to
     }
 
+    // PLANT HEALTH
     final plantStatus = await _api.getPlantStatus(userId);
-    if (plantStatus != null) plant.health = plantStatus;
+    if (plantStatus != null) {
+      plant.health = plantStatus;
+    }
 
+    // DOG MOOD
     final dogStatus = await _api.getDogStatus(userId);
-    if (dogStatus != null) dog.mood = dogStatus;
+    if (dogStatus != null) {
+      dog.mood = dogStatus;
+    }
 
-    final windowStatus = await _api.getWindowStatus(userId);
-    // You can store window if needed
+    // WINDOW STATUS (optional)
+    await _api.getWindowStatus(userId);
 
-    notifyListeners();
+    // USER GOALS
+    final stepGoal = await _api.getStepGoal(userId);
+    if (stepGoal != null) {
+      dailyStepGoal = stepGoal;
+      dog.stepGoal = stepGoal; // keep dog in sync
+    }
+    print("🌱 Controller loaded step-goal for user $userId: $dailyStepGoal");
+
+    final waterGoal = await _api.getWaterintakeGoal(userId);
+    if (waterGoal != null) {
+      dailyWaterGoal = waterGoal;
+    }
   }
 
   // ===================================================
   //                STATE SNAPSHOT FOR UI
   // ===================================================
   RoomState get state => RoomState(
-    plantHealth: plant.health,
-    dogHealth: dog.mood,
-    stepsToday: dog.stepsToday,
-    waterToday: waterToday,
-  );
+        plantHealth: plant.health,
+        dogHealth: dog.mood,
+        stepsToday: dog.stepsToday,
+        waterToday: waterToday,
+      );
 
   // ===================================================
   //                DAILY HYDRATION → PLANT UPDATE
@@ -218,13 +249,17 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
-  //               Update settings
+  //               UPDATE SETTINGS (PERSISTENT)
   // ===================================================
-  void updateSettings(int newSteps, int newWater) {
+  Future<void> updateSettings(int newSteps, int newWater) async {
     dailyStepGoal = newSteps;
     dailyWaterGoal = newWater;
 
     dog.stepGoal = newSteps;
+
+    // Persist to backend
+    await _api.updateStepGoal(userId, newSteps);
+    await _api.updateWaterintakeGoal(userId, newWater);
 
     notifyListeners();
   }

@@ -88,7 +88,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MyRoomPage(
-                            playerId: loginData["user"]?["id"],
+                            userId: loginData["user"]?["id"],
                           ),
                         ),
                       );

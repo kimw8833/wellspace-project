@@ -2,352 +2,296 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  //final String baseUrl = 'http://127.0.0.1:8000'; //for testing locally
-  final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev'; //ngrok URL
+  final String baseUrl = 'https://paragogically-unlegible-grazyna.ngrok-free.dev';
+
+  // Common headers for ALL requests
+  Map<String, String> get _jsonHeaders => {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      };
+
+  Map<String, String> get _getHeaders => {
+        'ngrok-skip-browser-warning': 'true',
+      };
 
   //
-  // GET FULL ROOM STATUS (statuses + timestamps)
+  // GET FULL ROOM STATUS
   //
   Future<Map<String, dynamic>?> getFullRoomStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/room-status/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🔥 Room-status RAW: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        if (data["ok"] == true && data["room_status"] != null) {
-          return Map<String, dynamic>.from(data["room_status"]);
-        } else {
-          return null;
-        }
-      } else {
-        return null;
+        return Map<String, dynamic>.from(data["room_status"] ?? {});
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+    return null;
   }
 
   //
-  // --- STEP GOAL / WATER GOAL / USER LOCATION ---
-  //
-
-  //
-  // GET STEP GOAL
+  // STEP GOAL
   //
   Future<int?> getStepGoal(int userId) async {
     final url = Uri.parse('$baseUrl/api/step-goal/$userId');
+    print("🌍 HITTING STEP-GOAL URL: $url");
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🔥 API RAW step-goal response for user $userId: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print("🧩 Decoded step-goal JSON for user $userId: $data");
+
         final value = data["step_goal"];
-        if (value is num) {
-          return value.toInt();
-        }
+        if (value is num) return value.toInt();
         return int.tryParse(value.toString());
-      } else {
-        return null;
       }
     } catch (e) {
-      return null;
+      print("❌ Step goal fetch error: $e");
     }
+    return null;
   }
 
-  //
-  // UPDATE STEP GOAL
-  //
   Future<bool> updateStepGoal(int userId, int newGoal) async {
     final url = Uri.parse('$baseUrl/api/step-goal/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "step_goal": newGoal,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"step_goal": newGoal}),
       );
 
+      print("⬆️ Updated step-goal → ${response.body}");
       return response.statusCode == 200;
     } catch (e) {
+      print("❌ Step-goal update error: $e");
       return false;
     }
   }
 
   //
-  // GET WATER INTAKE GOAL (ml)
+  // WATER GOAL
   //
   Future<int?> getWaterintakeGoal(int userId) async {
     final url = Uri.parse('$baseUrl/api/waterintake-goal/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🔥 Water-goal RAW: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final value = data["waterintake_goal"];
-        if (value is num) {
-          return value.toInt();
-        }
+        if (value is num) return value.toInt();
         return int.tryParse(value.toString());
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+
+    return null;
   }
 
-  //
-  // UPDATE WATER INTAKE GOAL
-  //
   Future<bool> updateWaterintakeGoal(int userId, int newGoal) async {
     final url = Uri.parse('$baseUrl/api/waterintake-goal/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "waterintake_goal": newGoal,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"waterintake_goal": newGoal}),
       );
 
+      print("⬆️ Updated water-goal → ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // GET USER LOCATION (inside / outside)
+  // USER LOCATION
   //
   Future<String?> getUserLocation(int userId) async {
     final url = Uri.parse('$baseUrl/api/user-location/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🔥 Location RAW: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data["user_location"]?.toString();
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+
+    return null;
   }
 
-  //
-  // UPDATE USER LOCATION
-  //
   Future<bool> updateUserLocation(int userId, String newLocation) async {
-    // expected: "inside" or "outside"
     final url = Uri.parse('$baseUrl/api/user-location/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "user_location": newLocation,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"user_location": newLocation}),
       );
 
+      print("⬆️ Updated user-location → ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // GET PLANT STATUS 
+  // PLANT STATUS
   //
   Future<double?> getPlantStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/plant-status/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🌿 Plant RAW: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final value = data["plant_status"];
-        if (value is num) {
-          return value.toDouble();
-        }
+        final value = json.decode(response.body)["plant_status"];
+        if (value is num) return value.toDouble();
         return double.tryParse(value.toString());
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+    return null;
   }
 
-  //
-  // UPDATE PLANT STATUS
-  //
   Future<bool> updatePlantStatus(int userId, double newValue) async {
     final url = Uri.parse('$baseUrl/api/plant-status/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "plant_status": newValue,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"plant_status": newValue}),
       );
-
+      print("⬆️ Updated plant-status: ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // GET DOG STATUS 
+  // DOG STATUS
   //
   Future<double?> getDogStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/dog-status/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🐶 Dog RAW: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final value = data["dog_status"];
-        if (value is num) {
-          return value.toDouble();
-        }
+        final value = json.decode(response.body)["dog_status"];
+        if (value is num) return value.toDouble();
         return double.tryParse(value.toString());
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+
+    return null;
   }
 
-  //
-  // UPDATE DOG STATUS
-  //
   Future<bool> updateDogStatus(int userId, double newValue) async {
     final url = Uri.parse('$baseUrl/api/dog-status/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "dog_status": newValue,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"dog_status": newValue}),
       );
-
+      print("⬆️ Updated dog-status: ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // GET WINDOW STATUS 
+  // WINDOW STATUS
   //
   Future<double?> getWindowStatus(int userId) async {
     final url = Uri.parse('$baseUrl/api/window-status/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🪟 Window RAW: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final value = data["window_status"];
-        if (value is num) {
-          return value.toDouble();
-        }
+        final value = json.decode(response.body)["window_status"];
+        if (value is num) return value.toDouble();
         return double.tryParse(value.toString());
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+    return null;
   }
 
-  //
-  // UPDATE WINDOW STATUS
-  //
   Future<bool> updateWindowStatus(int userId, double newValue) async {
     final url = Uri.parse('$baseUrl/api/window-status/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "window_status": newValue,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"window_status": newValue}),
       );
-
+      print("⬆️ Updated window-status: ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // GET ROOM MOOD 
+  // ROOM MOOD
   //
   Future<double?> getRoomMood(int userId) async {
     final url = Uri.parse('$baseUrl/api/room-mood/$userId');
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(url, headers: _getHeaders);
+      print("🎭 Room-mood RAW: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final value = data["room_mood"];
-        if (value is num) {
-          return value.toDouble();
-        }
+        final value = json.decode(response.body)["room_mood"];
+        if (value is num) return value.toDouble();
         return double.tryParse(value.toString());
-      } else {
-        return null;
       }
-    } catch (e) {
-      return null;
-    }
+    } catch (_) {}
+    return null;
   }
 
-  //
-  // UPDATE ROOM MOOD
-  //
   Future<bool> updateRoomMood(int userId, double newValue) async {
     final url = Uri.parse('$baseUrl/api/room-mood/$userId');
 
     try {
       final response = await http.put(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "room_mood": newValue,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({"room_mood": newValue}),
       );
-
+      print("⬆️ Updated room-mood: ${response.body}");
       return response.statusCode == 200;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
   //
-  // LOGIN FUNCTION
+  // LOGIN
   //
   Future<Map<String, dynamic>> login(String username, String password) async {
     final url = Uri.parse('$baseUrl/api/login');
@@ -355,45 +299,19 @@ class ApiService {
     try {
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'password': password,
-        }),
+        headers: _jsonHeaders,
+        body: json.encode({'username': username, 'password': password}),
       );
 
+      print("🔐 LOGIN RAW: ${response.body}");
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['ok'] == true) {
-        // login success
-        return {
-          "success": true,
-          "user": data["user"], // { id: ..., username: ... }
-        };
-      } else {
-        // login fail ex. user/password stämmer inte
-        return {
-          "success": false,
-          "error": data["error"] ?? "Login failed",
-        };
+        return {"success": true, "user": data["user"]};
       }
+      return {"success": false, "error": data["error"] ?? "Login failed"};
     } catch (e) {
-      // network error eller server error
-      return {
-        "success": false,
-        "error": e.toString(),
-      };
-    }
-  }
-  
-  // Fetch games for a specific user. Takes playerId as argument.
-  Future<List<dynamic>> getUserLoginData() async {
-    final response = await http.get(Uri.parse('$baseUrl/users'));
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body); // Convert JSON response to List
-    } else {
-      throw Exception('Failed to user data');
+      return {"success": false, "error": e.toString()};
     }
   }
 }
