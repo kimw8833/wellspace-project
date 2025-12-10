@@ -9,6 +9,7 @@ import '../controllers/room_controller.dart';
 import '../widgets/sprites/plant_sprite.dart';
 import '../widgets/sprites/dog_sprite.dart';
 import '../widgets/debug/debug_panel.dart';
+import '../widgets/room_menu_button.dart'; // menu button
 
 // utils
 import '../utils/constants.dart';
@@ -54,6 +55,11 @@ class _MyRoomPageState extends State<MyRoomPage> {
   void _toggleDebug() {
     if (!isDeveloper) return;
     setState(() => _debugVisible = !_debugVisible);
+  }
+
+  void _logout() {
+    // EXACT same behavior as the old bottom-right logout button
+    Navigator.of(context).pop();
   }
 
   @override
@@ -120,8 +126,10 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.35),
                       borderRadius: BorderRadius.circular(10),
@@ -129,15 +137,19 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time,
-                            color: Colors.white70, size: 16),
+                        const Icon(
+                          Icons.access_time,
+                          color: Colors.white70,
+                          size: 16,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           Formatting.timestamp(controller.time.simulatedTime),
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500),
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -185,52 +197,46 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   onScenarioChanged: (s) => controller.setScenario(s),
 
                   // dog steps
-                  onDogStepsChanged: (v) =>
-                      controller.setStepsToday(v.toInt()),
+                  onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
                 ),
               ),
             ),
 
           // ============================
-          //     DEBUG TOGGLE BUTTON
-          // ============================
-          if (isDeveloper)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: IconButton(
-                    icon: Icon(
-                      _debugVisible
-                          ? Icons.bug_report
-                          : Icons.bug_report_outlined,
-                      size: 22,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                    onPressed: _toggleDebug,
-                  ),
-                ),
-              ),
-            ),
-
-          // ============================
-          //       LOGOUT BUTTON (BOTTOM RIGHT)
+          //     MENU + DEBUG BUTTON (TOP RIGHT)
           // ============================
           SafeArea(
             child: Align(
-              alignment: Alignment.bottomRight,
+              alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.logout,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // MENU
+                    RoomMenuButton(
+                      onAchievements: () => print("Achievements tapped"),
+                      onFriends: () => print("Friends tapped"),
+                      onSettings: () => print("Settings tapped"),
+                      onLogout:
+                          _logout, // <--- uses the exact same logic as old button
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // DEBUG BUTTON
+                    if (isDeveloper)
+                      IconButton(
+                        icon: Icon(
+                          _debugVisible
+                              ? Icons.bug_report
+                              : Icons.bug_report_outlined,
+                          size: 22,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                        onPressed: _toggleDebug,
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -253,12 +259,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   Color _plantColor(double s) {
-    final t = s.clamp(0.0, 1.0);
-    return Color.lerp(
-      const Color(0xFF6B4226),
-      const Color(0xFF4CAF50),
-      t,
-    )!;
+    final t = s.clamp(0.0, 1.0).toDouble();
+    return Color.lerp(const Color(0xFF6B4226), const Color(0xFF4CAF50), t)!;
   }
 
   String _dogHealthLabel(double d) {
@@ -276,7 +278,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
       _ => 'OK (0.6)',
     };
 
-    if (!controller.autoSimRunning) {
+    if (!controller.time.autoSimRunning) {
       return "Scenario: $scenario • Paused";
     } else {
       return "Scenario: $scenario • "

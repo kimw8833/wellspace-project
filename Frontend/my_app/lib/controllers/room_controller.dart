@@ -68,11 +68,11 @@ class RoomController extends ChangeNotifier {
   //                STATE SNAPSHOT FOR UI
   // ===================================================
   RoomState get state => RoomState(
-        plantHealth: plant.health,
-        dogHealth: dog.mood,
-        stepsToday: dog.stepsToday,
-        waterToday: waterToday,
-      );
+    plantHealth: plant.health,
+    dogHealth: dog.mood,
+    stepsToday: dog.stepsToday,
+    waterToday: waterToday,
+  );
 
   // ===================================================
   //                DAILY HYDRATION → PLANT UPDATE
@@ -81,6 +81,19 @@ class RoomController extends ChangeNotifier {
     final ratio = (waterToday / dailyGoal).clamp(0.0, 1.0);
     plant.applyDailyUpdate(ratio);
     waterToday = 0;
+  }
+
+  /// Daily update used by the auto-simulation.
+  ///
+  /// Instead of using the real `waterToday` counter, this uses
+  /// the current [`TimeSimulation.scenarioRatio`] so that the
+  /// hydration level in the time-lapse simulation actually
+  /// matches the selected scenario (dry / ok / perfect).
+  void _applyDailyUpdateFromScenario() {
+    final ratio = time.scenarioRatio.clamp(0.0, 1.0);
+    plant.applyDailyUpdate(ratio);
+    // We deliberately *do not* touch `waterToday` here; that
+    // counter is only for the real-world / manual flow.
   }
 
   // ===================================================
@@ -141,10 +154,8 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
-  //                AUTO SIMULATION
+  //                AUTO-SIMULATION CONTROL
   // ===================================================
-  bool get autoSimRunning => time.autoSimRunning;
-
   void playAutoSim(double speedMultiplier) {
     stopAutoSim();
 
@@ -180,7 +191,7 @@ class RoomController extends ChangeNotifier {
 
     // Check for day boundary
     if (time.isNewDay()) {
-      applyDailyUpdate();
+      _applyDailyUpdateFromScenario();
       _resetDogForNewDay();
       time.updateCurrentDate();
     }

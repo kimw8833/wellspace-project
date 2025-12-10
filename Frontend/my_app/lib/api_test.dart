@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'api_service.dart';
+import '/services/api_service.dart';
 
 Future<void> main() async {
   final api = ApiService();
@@ -84,9 +84,9 @@ Future<void> main() async {
   // ---------------------------------------------------------
   print("🔹 Re-checking values after update ...");
   final newPlant = await api.getPlantStatus(userId);
-  final newDog   = await api.getDogStatus(userId);
-  final newWin   = await api.getWindowStatus(userId);
-  final newMood  = await api.getRoomMood(userId);
+  final newDog = await api.getDogStatus(userId);
+  final newWin = await api.getWindowStatus(userId);
+  final newMood = await api.getRoomMood(userId);
 
   print("Updated Plant Status  = $newPlant");
   print("Updated Dog Status    = $newDog");
@@ -115,7 +115,10 @@ Future<void> main() async {
   print("Current waterintake_goal = $waterGoal");
 
   print("🔹 Testing updateWaterintakeGoal() ...");
-  final okWater = await api.updateWaterintakeGoal(userId, (waterGoal ?? 2000) + 500);
+  final okWater = await api.updateWaterintakeGoal(
+    userId,
+    (waterGoal ?? 2000) + 500,
+  );
   print("Update Water Intake Goal success = $okWater");
 
   final newWaterGoal = await api.getWaterintakeGoal(userId);
