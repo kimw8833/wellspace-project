@@ -7,7 +7,7 @@ USE wellspacedb;
 DROP TABLE IF EXISTS daily_steps;
 DROP TABLE IF EXISTS room_status;
 DROP TABLE IF EXISTS users;
-
+DROP TABLE IF EXISTS friendships;
 
 -- ---------------------------
 -- 1) Users table
@@ -82,5 +82,39 @@ CREATE TABLE daily_steps (
 
     CONSTRAINT fk_daily_steps_user
         FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+
+-- ---------------------------------------------------
+-- 4) Friendships table (friend requests + friends)
+-- ---------------------------------------------------
+CREATE TABLE friendships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    requester_id INT NOT NULL,   -- user who sent the friend request
+    receiver_id  INT NOT NULL,   -- user who received the friend request
+
+    status ENUM('pending', 'accepted', 'rejected', 'blocked')
+           NOT NULL DEFAULT 'pending',
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+               ON UPDATE CURRENT_TIMESTAMP,
+
+    -- cannot send friend request to oneself
+    CONSTRAINT chk_not_self_friend
+        CHECK (requester_id <> receiver_id),
+
+    -- one pair of users can have only one friendship record
+    CONSTRAINT uc_friend_pair
+        UNIQUE (requester_id, receiver_id),
+
+    CONSTRAINT fk_friendships_requester
+        FOREIGN KEY (requester_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_friendships_receiver
+        FOREIGN KEY (receiver_id)  REFERENCES users(id)
         ON DELETE CASCADE
 );
