@@ -1,5 +1,3 @@
-// lib/pages/room_page.dart
-
 import 'package:flutter/material.dart';
 
 import '../controllers/room_controller.dart';
@@ -8,6 +6,7 @@ import '../widgets/sprites/dog_sprite.dart';
 import '../widgets/debug/debug_panel.dart';
 import '../widgets/room_menu_button.dart';
 import '../widgets/settings_dialog.dart';
+import '../widgets/sprites/clock_sprite.dart';
 
 import '../utils/constants.dart';
 import '../utils/formatting.dart';
@@ -49,9 +48,6 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   void _openSettingsDialog() async {
-    print(
-        "🛠 Opening settings with stepGoal=${controller.dailyStepGoal}, waterGoal=${controller.dailyWaterGoal}");
-
     final result = await showDialog(
       context: context,
       barrierDismissible: true,
@@ -68,14 +64,9 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ===========================================
-    //   NEW: LOADING STATE (IMPORTANT!)
-    // ===========================================
     if (controller.isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -83,11 +74,17 @@ class _MyRoomPageState extends State<MyRoomPage> {
     final screenW = MediaQuery.of(context).size.width;
     final screenH = MediaQuery.of(context).size.height;
 
+    // PLANT POSITION
     final leftPlantX = 1450 * (screenW / CanvasSize.width);
     final bottomPlantY = 1006 * (screenH / CanvasSize.height);
 
+    // DOG POSITION
     final rightDogX = 260 * (screenW / CanvasSize.width);
     final bottomDogY = 260 * (screenH / CanvasSize.height);
+
+    // CLOCK POSITION (+x, +y quadrant)
+    final rightClockX = 150 * (screenW / CanvasSize.width);
+    final bottomClockY = 1100 * (screenH / CanvasSize.height);
 
     return Scaffold(
       body: Stack(
@@ -100,6 +97,19 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   image: AssetImage("assets/images/rooms/daylight_room.png"),
                   fit: BoxFit.cover,
                 ),
+              ),
+            ),
+          ),
+
+          // CLOCK (BASE ONLY — NO ARMS YET)
+          Positioned(
+            right: rightClockX,
+            bottom: bottomClockY,
+            child: Transform.scale(
+              scale: 0.95,
+              child: ClockSprite(
+                size: 130,
+                time: controller.effectiveNow,
               ),
             ),
           ),
@@ -137,53 +147,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                       onSettings: _openSettingsDialog,
                       onLogout: () => Navigator.of(context).pop(),
                       onAchievements: () {},
-                      onFriends: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text("Friends",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 42)),
-                              content: SizedBox(
-                                width: screenW / 1.5,
-                                height: 300,
-                                child: ListView.builder(
-                                  itemCount: friends.length,
-                                  itemBuilder: (context, index) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 10.0),
-                                      child: ElevatedButton(
-                                        onPressed: () {},
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(
-                                              double.infinity / 2, 100),
-                                          backgroundColor: const Color.fromRGBO(
-                                              146, 202, 170, 1),
-                                          foregroundColor: Colors.black,
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.center,
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 15),
-                                            child: Text(
-                                              friends[index],
-                                              style:
-                                                  const TextStyle(fontSize: 32),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
+                      onFriends: () {},
                     ),
                     if (isDeveloper)
                       IconButton(
@@ -203,19 +167,20 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // DEBUG PANEL (ONLY IF DEV)
+          // DEBUG PANEL
           if (_debugVisible && isDeveloper)
             SafeArea(
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: DebugPanel(
-                  simulatedTime: controller.time.simulatedTime,
+                  currentScenario: controller.time.scenario,
+                  simulatedTime: controller.effectiveNow,
                   autoSimLabel: "",
-                  stepsToday: controller.dog?.stepsToday ?? 0,
+                  stepsToday: controller.dog.stepsToday,
                   dogStepGoal: controller.dailyStepGoal,
-                  dogMood: controller.dog?.mood ?? 0.5,
+                  dogMood: controller.dog.mood,
                   dogMoodLabel: "",
-                  dogSprite: DogSprite(mood: controller.dog?.mood ?? 0.5),
+                  dogSprite: DogSprite(mood: controller.dog.mood),
                   plantHealth: controller.plant.health,
                   hydrationSmoothed: controller.plant.hydrationSmoothed,
                   plantHealthLabel: "",
@@ -228,7 +193,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   onPlay10x: () => controller.playAutoSim(10),
                   onPause: () => controller.pauseAutoSim(),
                   onScenarioChanged: (s) => controller.setScenario(s),
-                  onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
+                  onDogStepsChanged: (v) =>
+                      controller.setStepsToday(v.toInt()),
                 ),
               ),
             ),

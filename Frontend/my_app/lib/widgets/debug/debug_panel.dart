@@ -9,13 +9,18 @@ import 'scenario_chip.dart';
 class DebugPanel extends StatelessWidget {
   final DateTime simulatedTime;
   final String autoSimLabel;
+
   final int stepsToday;
   final int dogStepGoal;
   final double dogMood;
   final String dogMoodLabel;
+
   final double plantHealth;
   final double hydrationSmoothed;
   final String plantHealthLabel;
+
+  // NEW: scenario state
+  final String currentScenario;
 
   // Controller callbacks
   final VoidCallback onAddDayMinus1;
@@ -45,6 +50,8 @@ class DebugPanel extends StatelessWidget {
     required this.hydrationSmoothed,
     required this.plantHealthLabel,
 
+    required this.currentScenario,
+
     required this.onAddDayMinus1,
     required this.onAddHourMinus1,
     required this.onAddHourPlus1,
@@ -59,10 +66,16 @@ class DebugPanel extends StatelessWidget {
     required this.plantColor,
   });
 
+  String _formatTime(DateTime d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${d.year}-${two(d.month)}-${two(d.day)}  "
+           "${two(d.hour)}:${two(d.minute)}:${two(d.second)}";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.centerLeft,          // <<< MOVED FROM bottomCenter
+      alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(left: 16, top: 24, bottom: 24),
         child: ConstrainedBox(
@@ -89,11 +102,10 @@ class DebugPanel extends StatelessWidget {
                     vertical: 14,
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
 
-                      // handle
+                      // HANDLE
                       Center(
                         child: Container(
                           width: 36,
@@ -106,7 +118,21 @@ class DebugPanel extends StatelessWidget {
                         ),
                       ),
 
-                      // TIME CONTROLS -----------------------------------------
+                      // CLOCK
+                      Text(
+                        _formatTime(simulatedTime),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                      const Divider(color: Colors.white24),
+
+                      // TIME CONTROLS
                       const Text(
                         "Simulated Time Controls",
                         textAlign: TextAlign.center,
@@ -116,36 +142,25 @@ class DebugPanel extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 8),
 
                       Wrap(
                         spacing: 10,
                         alignment: WrapAlignment.center,
                         children: [
-                          FancyDebugButton(
-                            label: "-1 day",
-                            onPressed: onAddDayMinus1,
-                          ),
-                          FancyDebugButton(
-                            label: "-1 hour",
-                            onPressed: onAddHourMinus1,
-                          ),
-                          FancyDebugButton(
-                            label: "+1 hour",
-                            onPressed: onAddHourPlus1,
-                          ),
-                          FancyDebugButton(
-                            label: "+1 day",
-                            onPressed: onAddDayPlus1,
-                          ),
+                          FancyDebugButton(label: "-1 day", onPressed: onAddDayMinus1),
+                          FancyDebugButton(label: "-1 hour", onPressed: onAddHourMinus1),
+                          FancyDebugButton(label: "+1 hour", onPressed: onAddHourPlus1),
+                          FancyDebugButton(label: "+1 day", onPressed: onAddDayPlus1),
                         ],
                       ),
 
                       const SizedBox(height: 14),
-                      const Divider(color: Colors.white24, height: 1),
+                      const Divider(color: Colors.white24),
                       const SizedBox(height: 12),
 
-                      // AUTO SIM ---------------------------------------------
+                      // AUTO SIM
                       const Text(
                         "Auto Simulation",
                         textAlign: TextAlign.center,
@@ -155,37 +170,20 @@ class DebugPanel extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        autoSimLabel,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
+
                       const SizedBox(height: 8),
 
                       Wrap(
                         spacing: 10,
                         alignment: WrapAlignment.center,
                         children: [
-                          FancyDebugButton(
-                            label: "Play 1x",
-                            onPressed: onPlay1x,
-                          ),
-                          FancyDebugButton(
-                            label: "Play 10x",
-                            onPressed: onPlay10x,
-                          ),
-                          FancyDebugButton(
-                            label: "Pause",
-                            onPressed: onPause,
-                          ),
+                          FancyDebugButton(label: "Play 1x", onPressed: onPlay1x),
+                          FancyDebugButton(label: "Play 10x", onPressed: onPlay10x),
+                          FancyDebugButton(label: "Pause", onPressed: onPause),
                         ],
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
                       Wrap(
                         spacing: 8,
@@ -194,29 +192,29 @@ class DebugPanel extends StatelessWidget {
                           ScenarioChip(
                             label: "Dry (0.2)",
                             value: "dry",
-                            groupValue: "",
+                            groupValue: currentScenario,
                             onTap: () => onScenarioChanged("dry"),
                           ),
                           ScenarioChip(
                             label: "OK (0.6)",
                             value: "ok",
-                            groupValue: "",
+                            groupValue: currentScenario,
                             onTap: () => onScenarioChanged("ok"),
                           ),
                           ScenarioChip(
                             label: "Perfect (1.0)",
                             value: "perfect",
-                            groupValue: "",
+                            groupValue: currentScenario,
                             onTap: () => onScenarioChanged("perfect"),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 14),
-                      const Divider(color: Colors.white24, height: 1),
+                      const Divider(color: Colors.white24),
                       const SizedBox(height: 12),
 
-                      // DOG DEBUG --------------------------------------------
+                      // DOG DEBUG
                       const Text(
                         "Dog Step / Mood Debug",
                         textAlign: TextAlign.center,
@@ -226,50 +224,27 @@ class DebugPanel extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
 
-                      Text(
-                        "Steps today: $stepsToday / $dogStepGoal   |   Mood: ${dogMood.toStringAsFixed(2)}",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      Text(
-                        dogMoodLabel,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
 
                       Slider(
                         value: stepsToday.toDouble(),
                         min: 0,
                         max: dogStepGoal.toDouble(),
-                        divisions: 100,
-                        label: stepsToday.toString(),
                         onChanged: onDogStepsChanged,
                       ),
 
-                      const SizedBox(height: 6),
-
+                      const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.center,
                         child: SizedBox(height: 72, child: dogSprite),
                       ),
 
                       const SizedBox(height: 14),
-                      const Divider(color: Colors.white24, height: 1),
+                      const Divider(color: Colors.white24),
                       const SizedBox(height: 12),
 
-                      // PLANT DEBUG ------------------------------------------
+                      // PLANT DEBUG
                       const Text(
                         "Plant State Debug",
                         textAlign: TextAlign.center,
@@ -279,7 +254,8 @@ class DebugPanel extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
+
+                      const SizedBox(height: 6),
 
                       Text(
                         "Health: ${plantHealth.toStringAsFixed(2)}   |   Smoothed hydration: ${hydrationSmoothed.toStringAsFixed(2)}",
@@ -289,85 +265,6 @@ class DebugPanel extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-
-                      const SizedBox(height: 8),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: plantColor,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: Colors.white, width: 1.1),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Flexible(
-                            child: Text(
-                              plantHealthLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      const Text(
-                        "Health level",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      SizedBox(
-                        height: 8,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final t =
-                                plantHealth.clamp(0.0, 1.0);
-                            final w = constraints.maxWidth * t;
-
-                            return Stack(
-                              children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(999),
-                                    color:
-                                        Colors.white.withOpacity(0.15),
-                                  ),
-                                ),
-                                AnimatedContainer(
-                                  duration:
-                                      const Duration(milliseconds: 250),
-                                  width: w,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(999),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFEF5350),
-                                        Color(0xFFFFC107),
-                                        Color(0xFF66BB6A),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-
                     ],
                   ),
                 ),

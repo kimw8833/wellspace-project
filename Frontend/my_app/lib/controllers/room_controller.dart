@@ -7,7 +7,6 @@ import '../models/plant_model.dart';
 import '../models/dog_model.dart';
 import '../models/time_simulation.dart';
 import '../models/room_state.dart';
-
 import '../services/api_service.dart';
 
 class RoomController extends ChangeNotifier {
@@ -21,20 +20,20 @@ class RoomController extends ChangeNotifier {
 
   // Daily counters
   int waterToday = 0;
-  int dailyWaterGoal = 2000; // default, overridden by backend
-  int dailyStepGoal = 10000; // default, overridden by backend
+  int dailyWaterGoal = 2000;
+  int dailyStepGoal = 10000;
 
-  // Loading state so UI doesn't show before data is ready
+  // Loading state
   bool isLoading = true;
 
-  // Timer for auto-simulation
+  // Timers
   Timer? _simTimer;
+  Timer? _realTimeTimer;
 
   RoomController(this.userId) {
     plant = PlantModel();
     time = TimeSimulation();
 
-    // Create dog with default goal for now; will be updated after backend load
     final start = DateTime(
       time.currentSimulatedDate.year,
       time.currentSimulatedDate.month,
@@ -48,47 +47,71 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
+  //                EFFECTIVE TIME SOURCE
+  // ===================================================
+
+  /// The time the app considers "now".
+  /// - Real time if auto-sim is OFF
+  /// - Simulated time if auto-sim is ON
+  DateTime get effectiveNow {
+    return time.autoSimRunning ? time.simulatedTime : DateTime.now();
+  }
+
+  // ===================================================
   //          CORE INITIALIZATION WITH LOADING
   // ===================================================
 
   Future<void> _initialize() async {
     await _loadInitialBackendState();
     isLoading = false;
+
+    // Start real-time ticking immediately
+    _startRealTimeTicker();
+
     notifyListeners();
+  }
+
+  // ===================================================
+  //                REAL-TIME TICKER
+  // ===================================================
+
+  void _startRealTimeTicker() {
+    _realTimeTimer?.cancel();
+    _realTimeTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (!time.autoSimRunning) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+
+  void _stopRealTimeTicker() {
+    _realTimeTimer?.cancel();
+    _realTimeTimer = null;
   }
 
   // ===================================================
   //                INITIAL BACKEND FETCH
   // ===================================================
-  Future<void> _loadInitialBackendState() async {
-    // ROOM MOOD (unused for now)
-    final roomMood = await _api.getRoomMood(userId);
-    if (roomMood != null) {
-      // map to plant/dog if you ever want to
-    }
 
-    // PLANT HEALTH
+  Future<void> _loadInitialBackendState() async {
     final plantStatus = await _api.getPlantStatus(userId);
     if (plantStatus != null) {
       plant.health = plantStatus;
     }
 
-    // DOG MOOD
     final dogStatus = await _api.getDogStatus(userId);
     if (dogStatus != null) {
       dog.mood = dogStatus;
     }
 
-    // WINDOW STATUS (optional)
-    await _api.getWindowStatus(userId);
-
-    // USER GOALS
     final stepGoal = await _api.getStepGoal(userId);
     if (stepGoal != null) {
       dailyStepGoal = stepGoal;
-      dog.stepGoal = stepGoal; // keep dog in sync
+      dog.stepGoal = stepGoal;
     }
-    print("🌱 Controller loaded step-goal for user $userId: $dailyStepGoal");
 
     final waterGoal = await _api.getWaterintakeGoal(userId);
     if (waterGoal != null) {
@@ -99,6 +122,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
   //                STATE SNAPSHOT FOR UI
   // ===================================================
+
   RoomState get state => RoomState(
         plantHealth: plant.health,
         dogHealth: dog.mood,
@@ -107,49 +131,41 @@ class RoomController extends ChangeNotifier {
       );
 
   // ===================================================
-  //                DAILY HYDRATION → PLANT UPDATE
+  //                PLANT UPDATE
   // ===================================================
+
   void applyDailyUpdate() {
     final ratio = (waterToday / dailyWaterGoal).clamp(0.0, 1.0);
     plant.applyDailyUpdate(ratio);
     waterToday = 0;
   }
 
-  /// Daily update used by the auto-simulation.
-  ///
-  /// Instead of using the real `waterToday` counter, this uses
-  /// the current [`TimeSimulation.scenarioRatio`] so that the
-  /// hydration level in the time-lapse simulation actually
-  /// matches the selected scenario (dry / ok / perfect).
   void _applyDailyUpdateFromScenario() {
     final ratio = time.scenarioRatio.clamp(0.0, 1.0);
     plant.applyDailyUpdate(ratio);
-    // We deliberately *do not* touch `waterToday` here; that
-    // counter is only for the real-world / manual flow.
   }
 
   // ===================================================
   //                DOG STEP UPDATE
   // ===================================================
+
   void setStepsToday(int steps) {
     final clamped = steps.clamp(0, dailyStepGoal);
-    dog.debugSetSteps(clamped, time.simulatedTime);
+    dog.debugSetSteps(clamped, effectiveNow);
     notifyListeners();
   }
 
   // ===================================================
   //                MANUAL TIME CONTROL
   // ===================================================
+
   void addHours(int hours) {
     stopAutoSim();
 
-    final previousTime = time.simulatedTime;
+    final prev = time.simulatedTime;
     time.addHours(hours);
+    dog.runTicks(prev, time.simulatedTime);
 
-    // Run dog ticks for time difference
-    dog.runTicks(previousTime, time.simulatedTime);
-
-    // Daily boundary?
     if (time.isNewDay()) {
       applyDailyUpdate();
       _resetDogForNewDay();
@@ -169,7 +185,6 @@ class RoomController extends ChangeNotifier {
         time.addDays(1);
       }
     } else {
-      // negative days
       final prev = time.simulatedTime;
       time.addDays(days);
       dog.runTicks(prev, time.simulatedTime);
@@ -180,17 +195,22 @@ class RoomController extends ChangeNotifier {
   }
 
   void _resetDogForNewDay() {
-    final date = time.currentSimulatedDate;
-    final start = DateTime(date.year, date.month, date.day, 0, 0);
+    final d = time.currentSimulatedDate;
+    final start = DateTime(d.year, d.month, d.day, 0, 0);
     dog.resetForNewDay(start);
   }
 
   // ===================================================
-  //                AUTO-SIMULATION CONTROL
+  //                AUTO-SIMULATION
   // ===================================================
+
   void playAutoSim(double speedMultiplier) {
     stopAutoSim();
 
+    _stopRealTimeTicker();
+
+    time.simulatedTime = DateTime.now();
+    time.updateCurrentDate();
     time.autoSimRunning = true;
     time.speedMultiplier = speedMultiplier;
 
@@ -198,6 +218,7 @@ class RoomController extends ChangeNotifier {
       TimeSimulation.simTickRealDuration,
       (_) => _simTick(),
     );
+
     notifyListeners();
   }
 
@@ -210,6 +231,8 @@ class RoomController extends ChangeNotifier {
     time.autoSimRunning = false;
     _simTimer?.cancel();
     _simTimer = null;
+
+    _startRealTimeTicker();
   }
 
   void _simTick() {
@@ -218,10 +241,8 @@ class RoomController extends ChangeNotifier {
     time.tickAutoSim();
     final now = time.simulatedTime;
 
-    // Dog updates
     dog.runTicks(prev, now);
 
-    // Check for day boundary
     if (time.isNewDay()) {
       _applyDailyUpdateFromScenario();
       _resetDogForNewDay();
@@ -232,16 +253,18 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
-  //                SCENARIO SETTING
+  //                SCENARIO
   // ===================================================
+
   void setScenario(String scenario) {
     time.scenario = scenario;
     notifyListeners();
   }
 
   // ===================================================
-  //                WATER INTAKE CONTROL
+  //                WATER CONTROL
   // ===================================================
+
   void addWater(int ml) {
     waterToday += ml;
     if (waterToday < 0) waterToday = 0;
@@ -249,15 +272,14 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
-  //               UPDATE SETTINGS (PERSISTENT)
+  //               UPDATE SETTINGS
   // ===================================================
+
   Future<void> updateSettings(int newSteps, int newWater) async {
     dailyStepGoal = newSteps;
     dailyWaterGoal = newWater;
-
     dog.stepGoal = newSteps;
 
-    // Persist to backend
     await _api.updateStepGoal(userId, newSteps);
     await _api.updateWaterintakeGoal(userId, newWater);
 
@@ -265,10 +287,10 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
-  //                BACKEND SYNC (OPTIONAL)
+  //                BACKEND SYNC
   // ===================================================
+
   Future<void> saveToBackend() async {
-    // Write back current states if you want
     await _api.updatePlantStatus(userId, plant.health);
     await _api.updateDogStatus(userId, dog.mood);
   }
@@ -276,6 +298,7 @@ class RoomController extends ChangeNotifier {
   @override
   void dispose() {
     _simTimer?.cancel();
+    _realTimeTimer?.cancel();
     super.dispose();
   }
 }
