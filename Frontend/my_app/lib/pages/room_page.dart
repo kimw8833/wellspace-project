@@ -28,6 +28,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
   bool get isDeveloper => widget.userId == 1;
 
+  List<String> friends = ["Martin", "Benjamin", "Tommy", "Kim"];
+
   @override
   void initState() {
     super.initState();
@@ -47,8 +49,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   void _openSettingsDialog() async {
-
-    print("🛠 Opening settings with stepGoal=${controller.dailyStepGoal}, waterGoal=${controller.dailyWaterGoal}");
+    print(
+        "🛠 Opening settings with stepGoal=${controller.dailyStepGoal}, waterGoal=${controller.dailyWaterGoal}");
 
     final result = await showDialog(
       context: context,
@@ -135,7 +137,53 @@ class _MyRoomPageState extends State<MyRoomPage> {
                       onSettings: _openSettingsDialog,
                       onLogout: () => Navigator.of(context).pop(),
                       onAchievements: () {},
-                      onFriends: () {},
+                      onFriends: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Friends",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 42)),
+                              content: SizedBox(
+                                width: screenW / 1.5,
+                                height: 300,
+                                child: ListView.builder(
+                                  itemCount: friends.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10.0),
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize: const Size(
+                                              double.infinity / 2, 100),
+                                          backgroundColor: const Color.fromRGBO(
+                                              146, 202, 170, 1),
+                                          foregroundColor: Colors.black,
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 15),
+                                            child: Text(
+                                              friends[index],
+                                              style:
+                                                  const TextStyle(fontSize: 32),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     if (isDeveloper)
                       IconButton(
@@ -180,8 +228,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   onPlay10x: () => controller.playAutoSim(10),
                   onPause: () => controller.pauseAutoSim(),
                   onScenarioChanged: (s) => controller.setScenario(s),
-                  onDogStepsChanged: (v) =>
-                      controller.setStepsToday(v.toInt()),
+                  onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
                 ),
               ),
             ),
