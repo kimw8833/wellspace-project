@@ -165,5 +165,103 @@ Future<void> main() async {
     print("Failed to fetch full room status.\n");
   }
 
+  // ---------------------------------------------------------
+  // 15) FRIENDS FLOW TEST
+  // Kim -> send request to Tommy -> Tommy accepts -> list -> remove
+  // ---------------------------------------------------------
+  print("\n🔹 Testing FRIENDS flow ...");
+
+  const friendUsername = "Tommy";
+
+  // 15.1 Kim sends friend request to Tommy
+  print("🔸 15.1 sendFriendRequest($friendUsername) ...");
+  final sent = await api.sendFriendRequest(userId, friendUsername);
+  print("Send request success = $sent");
+
+  // 15.2 Login as Tommy to accept (so we can test incoming requests correctly)
+  print("\n🔸 15.2 login() as Tommy ...");
+  final loginTommy = await api.login("Tommy", "1234");
+  print("Tommy login result: $loginTommy");
+
+  if (loginTommy["success"] != true) {
+    print("Tommy login failed, skipping accept/list/remove tests.");
+  } else {
+    final tommyUser = loginTommy["user"];
+    final int tommyId = tommyUser["id"];
+    print("Logged in as Tommy (id = $tommyId)");
+
+    // 15.3 Tommy checks incoming friend requests
+    print("\n🔸 15.3 getIncomingFriendRequests(Tommy) ...");
+    final incoming = await api.getIncomingFriendRequests(tommyId);
+    print("Incoming requests count = ${incoming.length}");
+    for (final r in incoming) {
+      print("  - from ${r["requester_username"]} (requester_id=${r["requester_id"]})");
+    }
+
+    // find request from Kim (userId)
+    final reqFromKim = incoming.where((r) => r["requester_id"] == userId).toList();
+
+    if (reqFromKim.isEmpty) {
+      print("No pending request from Kim found for Tommy.");
+      print("   (Maybe already accepted, already friends, or request not created.)");
+    } else {
+      // 15.4 Tommy accepts Kim's request
+      print("\n🔸 15.4 acceptFriendRequest(Tommy accepts Kim) ...");
+      final accepted = await api.acceptFriendRequest(tommyId, userId);
+      print("Accept success = $accepted");
+    }
+
+    // 15.5 List friends for Kim
+    print("\n🔸 15.5 getFriends(Kim) ...");
+    final kimFriends = await api.getFriends(userId);
+    print("Kim friends (${kimFriends.length}):");
+    for (final f in kimFriends) {
+      print("  - ${f["username"]} (id=${f["id"]})");
+    }
+
+    // 15.6 List friends for Tommy
+    print("\n🔸 15.6 getFriends(Tommy) ...");
+    final tommyFriends = await api.getFriends(tommyId);
+    print("Tommy friends (${tommyFriends.length}):");
+    for (final f in tommyFriends) {
+      print("  - ${f["username"]} (id=${f["id"]})");
+    }
+
+    // หา friendId ของ Tommy จาก friend list ของ Kim (ถ้ามี)
+    int? tommyIdFromKimList;
+    for (final f in kimFriends) {
+      if ((f["username"]?.toString() ?? "") == "Tommy") {
+        final v = f["id"];
+        if (v is int) tommyIdFromKimList = v;
+        if (v is num) tommyIdFromKimList = v.toInt();
+        if (v is String) tommyIdFromKimList = int.tryParse(v);
+      }
+    }
+
+    // 15.7 Remove friend (optional cleanup)
+    if (tommyIdFromKimList != null) {
+      print("\n🔸 15.7 removeFriend(Kim removes Tommy) ...");
+      final removed = await api.removeFriend(userId, tommyIdFromKimList!);
+      print("Remove success = $removed");
+
+      // Re-check lists
+      print("\n🔸 15.8 Re-check getFriends(Kim) ...");
+      final kimFriends2 = await api.getFriends(userId);
+      print("Kim friends (${kimFriends2.length}):");
+      for (final f in kimFriends2) {
+        print("  - ${f["username"]} (id=${f["id"]})");
+      }
+
+      print("\n🔸 15.9 Re-check getFriends(Tommy) ...");
+      final tommyFriends2 = await api.getFriends(tommyId);
+      print("Tommy friends (${tommyFriends2.length}):");
+      for (final f in tommyFriends2) {
+        print("  - ${f["username"]} (id=${f["id"]})");
+      }
+    } else {
+      print("\nTommy not found in Kim's friend list, so skipping removeFriend().");
+    }
+  }
+
   print("==== DONE TESTING ====");
 }

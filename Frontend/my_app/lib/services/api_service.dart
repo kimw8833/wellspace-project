@@ -1,3 +1,5 @@
+// Frontend/my_app/lib/services/api_service.dart
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -314,4 +316,159 @@ class ApiService {
       return {"success": false, "error": e.toString()};
     }
   }
+
+  // --------------------------------------------------
+  // FRIENDS
+  // --------------------------------------------------
+
+  //
+  // SEND FRIEND REQUEST (by username)
+  //
+  Future<bool> sendFriendRequest(int userId, String friendUsername) async {
+    final url = Uri.parse('$baseUrl/api/friends/add');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({
+          "userId": userId,
+          "friendUsername": friendUsername,
+        }),
+      );
+
+      print("Send friend request RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Send friend request error: $e");
+      return false;
+    }
+  }
+
+  //
+  // GET INCOMING FRIEND REQUESTS (pending)
+  //
+  // returns:
+  // [
+  //   { friendship_id, requester_id, requester_username, created_at }
+  // ]
+  //
+  Future<List<Map<String, dynamic>>> getIncomingFriendRequests(int userId) async {
+    final url = Uri.parse('$baseUrl/api/friend-requests/$userId');
+
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+      print("Incoming friend requests RAW: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data["requests"] ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      print("Get incoming friend requests error: $e");
+    }
+
+    return [];
+  }
+
+  //
+  // ACCEPT FRIEND REQUEST (by ids)
+  //
+  Future<bool> acceptFriendRequest(int userId, int requesterId) async {
+    final url = Uri.parse('$baseUrl/api/friends/accept');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({
+          "userId": userId,
+          "requesterId": requesterId,
+        }),
+      );
+
+      print("Accept friend request RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Accept friend request error: $e");
+      return false;
+    }
+  }
+
+  //
+  // REJECT FRIEND REQUEST
+  //
+  Future<bool> rejectFriendRequest(int userId, int requesterId) async {
+    final url = Uri.parse('$baseUrl/api/friends/reject');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({
+          "userId": userId,
+          "requesterId": requesterId,
+        }),
+      );
+
+      print("Reject friend request RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Reject friend request error: $e");
+      return false;
+    }
+  }
+
+  //
+  // GET FRIEND LIST (accepted friends)
+  //
+  // returns:
+  // [
+  //   { id, username }
+  // ]
+  //
+  Future<List<Map<String, dynamic>>> getFriends(int userId) async {
+    final url = Uri.parse('$baseUrl/api/friends/$userId');
+
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+      print("Friends list RAW: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data["friends"] ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      print("Get friends error: $e");
+    }
+
+    return [];
+  }
+
+  //
+  // REMOVE FRIEND (unfriend)
+  //
+  Future<bool> removeFriend(int userId, int friendId) async {
+    final url = Uri.parse('$baseUrl/api/friends');
+
+    try {
+      final response = await http.delete(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({
+          "userId": userId,
+          "friendId": friendId,
+        }),
+      );
+
+      print("Remove friend RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Remove friend error: $e");
+      return false;
+    }
+  }
+
 }
