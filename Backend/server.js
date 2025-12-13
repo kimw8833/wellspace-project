@@ -1,10 +1,13 @@
+// Backend/server.js
+
 const express = require('express');
 const cors = require('cors');
 
-const goalsRoutes = require('./routes/goals.routes');
-const roomRoutes  = require('./routes/room.routes');
-const authRoutes  = require('./routes/auth.routes');
-const miscRoutes  = require('./routes/misc.routes');
+const goalsRoutes   = require('./routes/goals.routes');
+const roomRoutes    = require('./routes/room.routes');
+const authRoutes    = require('./routes/auth.routes');
+const miscRoutes    = require('./routes/misc.routes');
+const friendsRoutes = require('./routes/friends.routes');
 
 const app = express();
 const PORT = 3000;
@@ -16,6 +19,7 @@ app.use(goalsRoutes);
 app.use(roomRoutes);
 app.use(authRoutes);
 app.use(miscRoutes);
+app.use(friendsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

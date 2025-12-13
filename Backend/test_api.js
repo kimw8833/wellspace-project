@@ -1,4 +1,5 @@
-// test_api.js
+// Backend/test_api.js
+
 // A simple script to test all API endpoints for the Wellspace backend.
 // This script performs GET and PUT requests to verify that the server,
 // database connection, login, and status update routes are functioning correctly.
@@ -10,6 +11,61 @@ require('dotenv').config();
 const API_BASE_URL =
   process.env.API_BASE_URL ||
   'https://paragogically-unlegible-grazyna.ngrok-free.dev';
+
+// -------------------------------
+// FRIEND TEST HELPERS
+// -------------------------------
+
+function findUserId(usersData, username) {
+  // usersRes.data อาจเป็น { ok:true, users:[...] } หรือเป็น array ตรง ๆ
+  const users = Array.isArray(usersData) ? usersData : usersData?.users;
+  if (!Array.isArray(users)) return null;
+
+  const u = users.find((x) => x.username === username);
+  return u ? u.id : null;
+}
+
+async function sendFriendRequest(userId, friendUsername) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/friends/add`,
+    { userId, friendUsername },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log(`Response:`, res.data);
+  return res.data;
+}
+
+async function getIncomingFriendRequests(userId) {
+  const res = await axios.get(`${API_BASE_URL}/api/friend-requests/${userId}`);
+  console.log(`Response:`, res.data);
+  return res.data;
+}
+
+async function acceptFriendRequest(userId, requesterId) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/friends/accept`,
+    { userId, requesterId },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log(`Response:`, res.data);
+  return res.data;
+}
+
+async function getFriendsList(userId) {
+  const res = await axios.get(`${API_BASE_URL}/api/friends/${userId}`);
+  console.log(`Response:`, res.data);
+  return res.data;
+}
+
+async function removeFriend(userId, friendId) {
+  // axios.delete ต้องส่ง body ผ่าน { data: ... }
+  const res = await axios.delete(`${API_BASE_URL}/api/friends`, {
+    data: { userId, friendId },
+    headers: { 'Content-Type': 'application/json' },
+  });
+  console.log(`Response:`, res.data);
+  return res.data;
+}
 
 async function testAPI() {
   try {
@@ -51,7 +107,7 @@ async function testAPI() {
     console.log('Response:', loginRes.data);
 
     if (!loginRes.data.ok) {
-      console.error('❌ Login failed, aborting tests.');
+      console.error('Login failed, aborting tests.');
       return;
     }
 
@@ -258,6 +314,60 @@ async function testAPI() {
       `${API_BASE_URL}/api/user-location/${testUserId}`
     );
     console.log('Re-checked user_location:', ulRes.data.user_location);
+  
+    // ------------------------------------------------------------
+    // 21. FRIENDS FLOW TEST (Final Pattern)
+    // Kim sends request to Tommy -> Tommy accepts -> list -> remove
+    // ------------------------------------------------------------
+    console.log('\n🔹 Testing FRIENDS flow ...');
+
+    // ใช้ usersRes ที่เพิ่งดึงมา (step 3)
+    const kimId = findUserId(usersRes.data, 'Kim');
+    const tommyId = findUserId(usersRes.data, 'Tommy');
+
+    if (!kimId || !tommyId) {
+      console.log('Cannot find Kim or Tommy in /api/users. Skipping friends test.');
+    } else {
+      console.log(`Using Kim id=${kimId}, Tommy id=${tommyId}`);
+
+      // 21.1 Kim sends friend request to Tommy (ใช้ username)
+      console.log('\n   🔸 21.1 POST /api/friends/add (Kim -> Tommy) ...');
+      await sendFriendRequest(kimId, 'Tommy');
+
+      // 21.2 Tommy checks incoming requests
+      console.log('\n   🔸 21.2 GET /api/friend-requests/:userId (Tommy incoming) ...');
+      const incoming = await getIncomingFriendRequests(tommyId);
+
+      const requests = incoming?.requests || [];
+      const reqFromKim = requests.find((r) => r.requester_id === kimId);
+
+      if (!reqFromKim) {
+        console.log('No pending request from Kim found for Tommy. (Maybe already accepted or not created)');
+      } else {
+        // 21.3 Tommy accepts (ใช้ ids)
+        console.log('\n   🔸 21.3 POST /api/friends/accept (Tommy accepts Kim) ...');
+        await acceptFriendRequest(tommyId, kimId);
+
+        // 21.4 List friends for both
+        console.log('\n   🔸 21.4 GET /api/friends/:userId (Kim friends) ...');
+        await getFriendsList(kimId);
+
+        console.log('\n   🔸 21.5 GET /api/friends/:userId (Tommy friends) ...');
+        await getFriendsList(tommyId);
+
+        // 21.6 Remove friend (จากฝั่ง Kim ก็ได้)
+        console.log('\n   🔸 21.6 DELETE /api/friends (Kim removes Tommy) ...');
+        await removeFriend(kimId, tommyId);
+
+        // 21.7 Re-check lists
+        console.log('\n   🔸 21.7 Re-check GET /api/friends/:userId (Kim) ...');
+        await getFriendsList(kimId);
+
+        console.log('\n   🔸 21.8 Re-check GET /api/friends/:userId (Tommy) ...');
+        await getFriendsList(tommyId);
+      }
+    }
+
 
     // ------------------------------------------------------------
     console.log('\nAll tests finished.\n');
