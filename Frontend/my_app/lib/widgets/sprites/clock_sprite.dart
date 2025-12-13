@@ -1,14 +1,25 @@
+// lib/widgets/sprites/clock_sprite.dart
+
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class ClockSprite extends StatelessWidget {
   final DateTime time;
   final double size;
 
+  /// TEMP: keep this true while aligning the sprite
+  final bool showDebugCircle;
+
+  /// Fine-tuning offset for the clock image (pixels)
+  /// Adjust until hands align perfectly with the face
+  final Offset faceOffset = const Offset(2, 0);
+
   const ClockSprite({
     super.key,
     required this.time,
-    this.size = 130,
+    this.size = 150,
+    this.showDebugCircle = false,
   });
 
   Widget _hand({
@@ -21,7 +32,6 @@ class ClockSprite extends StatelessWidget {
     return Transform.rotate(
       angle: angle,
       child: Transform.translate(
-        // Base of the hand at the center of the clock
         offset: Offset(0, -length / 2),
         child: Container(
           width: thickness,
@@ -39,13 +49,11 @@ class ClockSprite extends StatelessWidget {
   Widget build(BuildContext context) {
     final double radius = size / 2;
 
-    // Smooth time components
+    // Smooth time
     final double seconds = time.second + time.millisecond / 1000.0;
     final double minutes = time.minute + seconds / 60.0;
     final double hours = (time.hour % 12) + minutes / 60.0;
 
-    // IMPORTANT:
-    // Our hand is already "12 o'clock up" at angle=0, so NO -pi/2 offset.
     final double secondAngle = (seconds / 60.0) * 2 * pi;
     final double minuteAngle = (minutes / 60.0) * 2 * pi;
     final double hourAngle = (hours / 12.0) * 2 * pi;
@@ -56,48 +64,85 @@ class ClockSprite extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Clock face placeholder
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black.withOpacity(0.35),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.85),
-                width: 3,
+          // =============================
+          // DEBUG CIRCLE (OPTIONAL)
+          // =============================
+          if (showDebugCircle)
+            Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withOpacity(0.20),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.6),
+                  width: 2,
+                ),
+              ),
+            ),
+
+          // =============================
+          // CLOCK FACE IMAGE (EDGE FEATHER)
+          // =============================
+          Transform.translate(
+            offset: faceOffset,
+            child: Transform.rotate(
+              angle: -1 * pi / 180,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Soft blur mask behind the clock
+                  ClipOval(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 1.2, sigmaY: 1.2),
+                      child: Container(
+                        width: size + 2,
+                        height: size + 2,
+                        color: Colors.transparent,
+                      ),
+                    ),
+                  ),
+
+                  // Actual clock image
+                  Image.asset(
+                    "assets/images/additional/wall_clock.png",
+                    width: size,
+                    height: size,
+                    fit: BoxFit.contain,
+                  ),
+                ],
               ),
             ),
           ),
 
-          // Hour hand
+          // =============================
+          // HANDS
+          // =============================
           _hand(
             angle: hourAngle,
-            length: radius * 0.42,
+            length: radius * 0.3,
             thickness: 5.2,
-            color: Colors.white,
+            color: Colors.black,
             opacity: 0.92,
           ),
-
-          // Minute hand
           _hand(
             angle: minuteAngle,
-            length: radius * 0.63,
+            length: radius * 0.53,
             thickness: 3.4,
-            color: Colors.white,
+            color: Colors.black,
             opacity: 0.95,
           ),
-
-          // Second hand
           _hand(
             angle: secondAngle,
-            length: radius * 0.78,
+            length: radius * 0.53,
             thickness: 2.2,
             color: Colors.redAccent,
             opacity: 0.95,
           ),
 
-          // Center pin
+          // =============================
+          // CENTER PIN (HIDES SINS)
+          // =============================
           Container(
             width: 7,
             height: 7,

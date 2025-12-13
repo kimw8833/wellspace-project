@@ -101,7 +101,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // CLOCK (BASE ONLY — NO ARMS YET)
+          // CLOCK
           Positioned(
             right: rightClockX,
             bottom: bottomClockY,
@@ -147,7 +147,55 @@ class _MyRoomPageState extends State<MyRoomPage> {
                       onSettings: _openSettingsDialog,
                       onLogout: () => Navigator.of(context).pop(),
                       onAchievements: () {},
-                      onFriends: () {},
+                      onFriends: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text(
+                                "Friends",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 42),
+                              ),
+                              content: SizedBox(
+                                width: screenW / 1.5,
+                                height: 300,
+                                child: ListView.builder(
+                                  itemCount: friends.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                          bottom: 10.0),
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize:
+                                              const Size(double.infinity, 100),
+                                          backgroundColor:
+                                              const Color.fromRGBO(
+                                                  146, 202, 170, 1),
+                                          foregroundColor: Colors.black,
+                                        ),
+                                        child: Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 15),
+                                            child: Text(
+                                              friends[index],
+                                              style: const TextStyle(
+                                                  fontSize: 32),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     if (isDeveloper)
                       IconButton(
@@ -182,7 +230,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   dogMoodLabel: "",
                   dogSprite: DogSprite(mood: controller.dog.mood),
                   plantHealth: controller.plant.health,
-                  hydrationSmoothed: controller.plant.hydrationSmoothed,
+                  hydrationSmoothed:
+                      controller.plant.hydrationSmoothed,
                   plantHealthLabel: "",
                   plantColor: Colors.white,
                   onAddDayMinus1: () => controller.addDays(-1),
@@ -192,7 +241,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   onPlay1x: () => controller.playAutoSim(1),
                   onPlay10x: () => controller.playAutoSim(10),
                   onPause: () => controller.pauseAutoSim(),
-                  onScenarioChanged: (s) => controller.setScenario(s),
+                  onScenarioChanged: (s) =>
+                      controller.setScenario(s),
                   onDogStepsChanged: (v) =>
                       controller.setStepsToday(v.toInt()),
                 ),
