@@ -13,6 +13,7 @@ class CanvasSize {
 class SpriteScale {
   static const double plant = 2.0;
   static const double dog = 1.8;
+  static const double friendPicture = 0.6;
 }
 
 /// Default debug UI values.

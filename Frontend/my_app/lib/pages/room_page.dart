@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/widgets/sprites/friend_picture_sprite.dart';
 
 import '../controllers/room_controller.dart';
 import '../widgets/sprites/plant_sprite.dart';
@@ -95,6 +96,10 @@ class _MyRoomPageState extends State<MyRoomPage> {
     final rightClockX = 150 * (screenW / CanvasSize.width);
     final bottomClockY = 1100 * (screenH / CanvasSize.height);
 
+    // FRIEND PICTURE POSITION
+    final rightFriendPictureX = 1100 * (screenW / CanvasSize.width);
+    final bottomFriendPictureY = 750 * (screenH / CanvasSize.height);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -141,6 +146,21 @@ class _MyRoomPageState extends State<MyRoomPage> {
               scale: SpriteScale.dog,
               child: DogSprite(mood: state.dogHealth),
             ),
+          ),
+
+          // FRIEND PICTURE
+          Positioned(
+            right: rightFriendPictureX,
+            bottom: bottomFriendPictureY,
+            child: Transform.scale(
+                scale: SpriteScale.friendPicture,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _openFriendsDialog();
+                  },
+                  child: FriendPictureSprite(),
+                )),
           ),
 
           // MENU + DEBUG BUTTONS
