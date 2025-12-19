@@ -1,10 +1,65 @@
 import 'dart:async';
 import '/services/api_service.dart';
 
+String _randomUsername([String prefix = "WellspaceUser"]) {
+  final ms = DateTime.now().millisecondsSinceEpoch;
+  return "${prefix}_$ms";
+}
+
 Future<void> main() async {
   final api = ApiService();
 
   print("==== TESTING API SERVICE ====\n");
+
+  // ---------------------------------------------------------
+  // 0) REGISTER + VERIFY + DELETE (cleanup)
+  // ---------------------------------------------------------
+  print("🔹 Testing register() + deleteUser() flow ...");
+
+  final newUsername = _randomUsername();
+  const newPassword = "1234";
+
+  final reg = await api.register(newUsername, newPassword);
+  print("Register result: $reg");
+
+  int? newUserId;
+  if (reg["success"] == true) {
+    final u = reg["user"];
+    final v = u["id"];
+    if (v is int) newUserId = v;
+    if (v is num) newUserId = v.toInt();
+    if (v is String) newUserId = int.tryParse(v);
+
+    print("Registered user = $newUsername (id=$newUserId)");
+
+    // Optional: login new user to confirm it works
+    print("🔹 Testing login() with newly registered user ...");
+    final loginNew = await api.login(newUsername, newPassword);
+    print("Login(new user) result: $loginNew");
+
+    // Verify room_status exists by calling an existing endpoint
+    if (newUserId != null) {
+      print("🔹 Verifying room_status exists (getFullRoomStatus) ...");
+      final rs = await api.getFullRoomStatus(newUserId!);
+      if (rs != null && rs.isNotEmpty) {
+        print("room_status exists for new user. plant_status=${rs['plant_status']}");
+      } else {
+        // fallback check: plant status
+        print("getFullRoomStatus failed or empty. Trying getPlantStatus() ...");
+        final ps = await api.getPlantStatus(newUserId!);
+        print("Plant status (new user) = $ps");
+      }
+    }
+
+    // Cleanup: delete new user
+    if (newUserId != null) {
+      print("🔹 Cleanup: deleteUser($newUserId) ...");
+      final del = await api.deleteUser(newUserId!);
+      print("Delete result: $del");
+    }
+  } else {
+    print("Register failed -> skipping delete cleanup for new user.");
+  }
 
   // ---------------------------------------------------------
   // 1) Test Login

@@ -17,6 +17,75 @@ class ApiService {
       };
 
   //
+  // REGISTER (plain text)
+  //
+  // returns:
+  // { "success": true, "user": {id, username} }
+  // or { "success": false, "error": "..." }
+  //
+  Future<Map<String, dynamic>> register(String username, String password) async {
+    final url = Uri.parse('$baseUrl/api/register');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({'username': username, 'password': password}),
+      );
+
+      print("REGISTER RAW: ${response.body}");
+      final data = json.decode(response.body);
+
+      // backend should return { ok: true, user: {...} }
+      if (response.statusCode == 201 && data['ok'] == true) {
+        return {"success": true, "user": data["user"]};
+      }
+
+      // Incase backend returns success:true (For the future)
+      if ((response.statusCode == 200 || response.statusCode == 201) && data['success'] == true) {
+        return {"success": true, "user": data["user"]};
+      }
+
+      return {
+        "success": false,
+        "error": data["error"] ?? data["message"] ?? "Register failed"
+      };
+    } catch (e) {
+      return {"success": false, "error": e.toString()};
+    }
+  }
+
+  //
+  // DELETE USER
+  //
+  Future<Map<String, dynamic>> deleteUser(int userId) async {
+    final url = Uri.parse('$baseUrl/api/users/$userId');
+
+    try {
+      final response = await http.delete(url, headers: _jsonHeaders);
+
+      print("DELETE USER RAW: ${response.body}");
+
+      // Sometimes backend may send empty body -> Just in case, we handle that
+      Map<String, dynamic> data = {};
+      try {
+        data = json.decode(response.body);
+      } catch (_) {}
+
+      if (response.statusCode == 200 && (data["ok"] == true || data["success"] == true)) {
+        return {"success": true, "data": data};
+      }
+
+      return {
+        "success": false,
+        "error": data["error"] ?? data["message"] ?? "Delete user failed"
+      };
+    } catch (e) {
+      return {"success": false, "error": e.toString()};
+    }
+  }
+
+  //
   // GET FULL ROOM STATUS
   //
   Future<Map<String, dynamic>?> getFullRoomStatus(int userId) async {
