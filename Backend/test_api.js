@@ -110,6 +110,24 @@ async function deleteUser(userId) {
   return res.data;
 }
 
+// -------------------------------
+// ACHIEVEMENTS TEST HELPERS
+// -------------------------------
+async function getAchievements(userId) {
+  const res = await axios.get(`${API_BASE_URL}/api/achievements/${userId}`);
+  console.log('helper getAchievements Response:', res.data);
+  return res.data;
+}
+
+async function updateAchievementProgress(userId, index, progress) {
+  const res = await axios.put(
+    `${API_BASE_URL}/api/achievements/${userId}/${index}`,
+    { progress },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log('helper updateAchievementProgress Response:', res.data);
+  return res.data;
+}
 
 // -------------------------------
 // MAIN TEST FLOW
@@ -284,6 +302,88 @@ async function testAPI() {
     // ใช้ id จาก login ให้ตรงกับ DB เสมอ (Kim = 2 ตอนนี้)
     testUserId = loggedInUser.id;
     console.log('Using testUserId =', testUserId);
+    // ------------------------------------------------------------
+    // X. ACHIEVEMENTS FLOW TEST
+    // GET -> PUT (upsert) -> GET -> invalid cases
+    // ------------------------------------------------------------
+    console.log('\n🔹 Testing ACHIEVEMENTS flow ...');
+
+    try {
+      // X.1 GET achievements before update
+      console.log(`\n   🔸 X.1 GET /api/achievements/${testUserId} (before) ...`);
+      const achBefore = await getAchievements(testUserId);
+
+      const listBefore = achBefore?.achievements || [];
+      console.log('Achievements BEFORE:', listBefore);
+
+      // X.2 PUT updates (should work even if row not seeded because we upsert)
+      console.log(`\n   🔸 X.2 PUT /api/achievements/${testUserId}/1 progress=55 ...`);
+      await updateAchievementProgress(testUserId, 1, 55);
+
+      console.log(`\n   🔸 X.3 PUT /api/achievements/${testUserId}/2 progress=100 ...`);
+      await updateAchievementProgress(testUserId, 2, 100);
+
+      // X.3 GET achievements after update
+      console.log(`\n   🔸 X.4 GET /api/achievements/${testUserId} (after) ...`);
+      const achAfter = await getAchievements(testUserId);
+      const listAfter = achAfter?.achievements || [];
+      console.log('Achievements AFTER:', listAfter);
+
+      // Soft asserts
+      const a1 = listAfter.find(x => x.achievement_index === 1);
+      const a2 = listAfter.find(x => x.achievement_index === 2);
+
+      if (!a1 || a1.progress !== 55) {
+        console.log('FAIL: index=1 progress expected 55 but got:', a1);
+      } else {
+        console.log('OK: index=1 progress is 55');
+      }
+
+      if (!a2 || a2.progress !== 100) {
+        console.log('FAIL: index=2 progress expected 100 but got:', a2);
+      } else {
+        console.log('OK: index=2 progress is 100 (done = true in frontend)');
+      }
+
+      // X.4 Invalid progress
+      console.log(`\n   🔸 X.5 PUT invalid progress=150 (should be 400) ...`);
+      try {
+        await updateAchievementProgress(testUserId, 1, 150);
+        console.log('FAIL: invalid progress=150 should not succeed');
+      } catch (e) {
+        console.log('OK: invalid progress rejected');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+
+      // X.5 Invalid userId
+      console.log(`\n   🔸 X.6 GET invalid userId=-1 (should be 400) ...`);
+      try {
+        await getAchievements(-1);
+        console.log('FAIL: invalid userId=-1 should not succeed');
+      } catch (e) {
+        console.log('OK: invalid userId rejected');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+
+    } catch (e) {
+      console.log('Achievements flow failed unexpectedly.');
+      if (e.response) {
+        console.log('Status:', e.response.status);
+        console.log('Data  :', e.response.data);
+      } else {
+        console.log('Message:', e.message);
+      }
+    }
 
     // ------------------------------------------------------------
     // 5. GET plant status

@@ -8,6 +8,7 @@ const roomRoutes    = require('./routes/room.routes');
 const authRoutes    = require('./routes/auth.routes');
 const miscRoutes    = require('./routes/misc.routes');
 const friendsRoutes = require('./routes/friends.routes');
+const achievementsRoutes = require('./routes/achievements.routes');
 
 const app = express();
 const PORT = 3000;
@@ -20,6 +21,7 @@ app.use(roomRoutes);
 app.use(authRoutes);
 app.use(miscRoutes);
 app.use(friendsRoutes);
+app.use(achievementsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
