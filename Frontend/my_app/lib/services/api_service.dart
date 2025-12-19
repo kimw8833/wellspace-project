@@ -85,6 +85,80 @@ class ApiService {
     }
   }
 
+// --------------------------------------------------
+// ACHIEVEMENTS
+// --------------------------------------------------
+
+// GET achievements for a user
+//
+// Backend:
+//   GET /api/achievements/:userId
+// Expected response:
+//   { "success": true, "achievements": [ { "achievement_index": 1, "progress": 55 }, ... ] }
+//
+// Returns:
+//   List of maps: [{achievement_index: int, progress: int}, ...]
+//   If anything fails, returns [].
+Future<List<Map<String, dynamic>>> getAchievements(int userId) async {
+  final url = Uri.parse('$baseUrl/api/achievements/$userId');
+
+  try {
+    final response = await http.get(url, headers: _getHeaders);
+    print("Achievements RAW: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      // Support both:
+      // - { success:true, achievements:[...] }
+      // - { ok:true, achievements:[...] } (just in case)
+      final ok = data["success"] == true || data["ok"] == true;
+      if (!ok) return [];
+
+      final List list = data["achievements"] ?? [];
+      return list.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+
+    return [];
+  } catch (e) {
+    print("Get achievements error: $e");
+    return [];
+  }
+}
+
+// UPDATE/UPSERT achievement progress
+//
+// Backend:
+//   PUT /api/achievements/:userId/:index
+// Body:
+//   { "progress": 0..100 }
+//
+// Expected response:
+//   { "success": true, ... }  (or at least statusCode 200)
+//
+// Returns:
+//   true if statusCode == 200
+Future<bool> updateAchievementProgress(int userId, int achievementIndex, int progress) async {
+  final url = Uri.parse('$baseUrl/api/achievements/$userId/$achievementIndex');
+
+  // Clamp to valid range to avoid accidental invalid calls from UI
+  final int safeProgress = progress.clamp(0, 100);
+
+  try {
+    final response = await http.put(
+      url,
+      headers: _jsonHeaders,
+      body: json.encode({"progress": safeProgress}),
+    );
+
+    print("Update achievement RAW: ${response.body}");
+    return response.statusCode == 200;
+  } catch (e) {
+    print("Update achievement error: $e");
+    return false;
+  }
+}
+
   //
   // GET FULL ROOM STATUS
   //

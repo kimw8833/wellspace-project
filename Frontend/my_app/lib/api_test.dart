@@ -6,6 +6,7 @@ String _randomUsername([String prefix = "WellspaceUser"]) {
   return "${prefix}_$ms";
 }
 
+
 Future<void> main() async {
   final api = ApiService();
 
@@ -77,6 +78,59 @@ Future<void> main() async {
   final user = loginResult["user"];
   final int userId = user["id"];
   print("Logged in as ${user["username"]} (id = $userId)\n");
+  // ---------------------------------------------------------
+  // ACHIEVEMENTS (GET + PUT + GET)
+  // ---------------------------------------------------------
+  print("\n=== ACHIEVEMENTS TEST ===");
+
+  // 1) GET achievements (before)
+  final beforeAch = await api.getAchievements(userId);
+  print("Achievements BEFORE: $beforeAch");
+
+  // 2) UPDATE progress
+  final ok1 = await api.updateAchievementProgress(userId, 1, 55);
+  if (ok1) {
+    print("OK: update achievement index=1 to 55");
+  } else {
+    print("FAIL: update achievement index=1 to 55");
+  }
+
+  final ok2 = await api.updateAchievementProgress(userId, 2, 100);
+  if (ok2) {
+    print("OK: update achievement index=2 to 100");
+  } else {
+    print("FAIL: update achievement index=2 to 100");
+  }
+
+  // 3) GET achievements (after)
+  final afterAch = await api.getAchievements(userId);
+  print("Achievements AFTER: $afterAch");
+
+  // 4) Verify values
+  int? p1;
+  int? p2;
+
+  for (final a in afterAch) {
+    if (a["achievement_index"] == 1) {
+      p1 = a["progress"];
+    }
+    if (a["achievement_index"] == 2) {
+      p2 = a["progress"];
+    }
+  }
+
+  if (p1 == 55) {
+    print("OK: achievement 1 progress is 55");
+  } else {
+    print("FAIL: achievement 1 progress expected 55, got $p1");
+  }
+
+  if (p2 == 100) {
+    print("OK: achievement 2 progress is 100");
+  } else {
+    print("FAIL: achievement 2 progress expected 100, got $p2");
+  }
+  print("=== END ACHIEVEMENTS TEST ===\n");
 
   // ---------------------------------------------------------
   // 2) Test GET Plant Status
