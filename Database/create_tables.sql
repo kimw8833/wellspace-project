@@ -1,3 +1,6 @@
+-- Database/create_tables.sql
+-- SQL script to create the wellspacedb database and its tables
+
 DROP DATABASE IF EXISTS wellspacedb;
 CREATE DATABASE IF NOT EXISTS wellspacedb;
 
@@ -118,3 +121,36 @@ CREATE TABLE friendships (
         FOREIGN KEY (receiver_id)  REFERENCES users(id)
         ON DELETE CASCADE
 );
+
+-- ---------------------------------------------------
+-- 5) Achievements progress table (simple index + progress)
+-- ---------------------------------------------------
+DROP TABLE IF EXISTS user_achievements;
+
+CREATE TABLE user_achievements (
+    user_id INT NOT NULL,
+    achievement_index INT NOT NULL,        -- 1,2,3,... (frontend maps meaning)
+    progress TINYINT UNSIGNED NOT NULL DEFAULT 0,  -- 0..100
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, achievement_index),
+
+    CONSTRAINT fk_user_achievements_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT chk_progress_range
+        CHECK (progress <= 100)
+);
+
+-- Create default achievement rows for each user
+INSERT INTO user_achievements (user_id, achievement_index, progress)
+SELECT u.id, a.achievement_index, 0
+FROM users u
+JOIN (
+  SELECT 1 AS achievement_index
+  UNION ALL SELECT 2
+  UNION ALL SELECT 3
+) a;
