@@ -77,6 +77,43 @@ async function rejectFriendRequest(userId, requesterId) {
   return res.data;
 }
 
+// -------------------------------
+// AUTH TEST HELPERS
+// -------------------------------
+function makeRandomUsername(prefix = 'WellspaceUser') {
+  return `${prefix}_${Date.now()}`;
+}
+
+async function registerUser(username, password) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/register`,
+    { username, password },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log('Response:', res.data);
+  return res.data;
+}
+
+async function loginUser(username, password) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/login`,
+    { username, password },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log('Response:', res.data);
+  return res.data;
+}
+
+async function deleteUser(userId) {
+  const res = await axios.delete(`${API_BASE_URL}/api/users/${userId}`);
+  console.log('Response:', res.data);
+  return res.data;
+}
+
+
+// -------------------------------
+// MAIN TEST FLOW
+// -------------------------------
 async function testAPI() {
   try {
     // Test user info
@@ -104,6 +141,126 @@ async function testAPI() {
     console.log('\n🔹 Testing GET /api/users ...');
     const usersRes = await axios.get(`${API_BASE_URL}/api/users`);
     console.log('Response:', usersRes.data);
+
+    // ------------------------------------------------------------
+    // 3.1 REGISTER + LOGIN + VERIFY room_status + cleanup delete
+    // ------------------------------------------------------------
+    console.log('\n🔹 Testing REGISTER flow (new random user) ...');
+
+    const newUsername = makeRandomUsername('WellspaceUser');
+    const newPassword = '1234';
+    let newUserId = null;
+
+    // 3.1.1 Register
+    try {
+      const regData = await registerUser(newUsername, newPassword);
+
+      // รองรับ ok:true หรือ success:true (เผื่อคุณเคยใช้ 2 แบบ)
+      const ok = regData?.ok === true || regData?.success === true;
+
+      if (!ok || !regData?.user?.id) {
+        console.log('Register did not return user id. Response:', regData);
+      } else {
+        newUserId = regData.user.id;
+        console.log(`Registered new user: ${newUsername} (id=${newUserId})`);
+      }
+    } catch (error) {
+      console.log('Register failed.');
+      if (error.response) {
+        console.log('Status:', error.response.status);
+        console.log('Data  :', error.response.data);
+      } else {
+        console.log('Message:', error.message);
+      }
+    }
+
+    // 3.1.2 Login with new user
+    if (newUserId) {
+      console.log('\n🔹 Testing POST /api/login (new user) ...');
+
+      try {
+        const loginData = await loginUser(newUsername, newPassword);
+        const okLogin = loginData?.ok === true || loginData?.success === true;
+
+        if (!okLogin) {
+          console.log('New user login failed. Response:', loginData);
+        } else {
+          console.log('New user login OK:', loginData.user);
+        }
+      } catch (e) {
+        console.log('Login request failed.');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+
+      // 3.1.3 Verify room_status row exists
+      console.log(`\n🔹 Verifying room_status (GET /api/room-status/${newUserId}) ...`);
+      let verified = false;
+
+      try {
+        const rsRes = await axios.get(`${API_BASE_URL}/api/room-status/${newUserId}`);
+        console.log('Response:', rsRes.data);
+        console.log('✅ room_status exists for new user.');
+        verified = true;
+      } catch (e) {
+        console.log('/api/room-status failed. Trying /api/plant-status instead...');
+
+        try {
+          const plantRes2 = await axios.get(`${API_BASE_URL}/api/plant-status/${newUserId}`);
+          console.log('Response:', plantRes2.data);
+          console.log('✅ plant-status works => room_status row likely exists.');
+          verified = true;
+        } catch (e2) {
+          console.log('Could not verify room_status for new user.');
+          if (e2.response) {
+            console.log('Status:', e2.response.status);
+            console.log('Data  :', e2.response.data);
+          } else {
+            console.log('Message:', e2.message);
+          }
+        }
+      }
+
+      // 3.1.4 Optional: update plant_status
+      if (verified) {
+        console.log(`\n🔹 Optional sanity: PUT /api/plant-status/${newUserId} ...`);
+        try {
+          const upd = await axios.put(
+            `${API_BASE_URL}/api/plant-status/${newUserId}`,
+            { plant_status: 0.10 },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+          console.log('Response:', upd.data);
+        } catch (e) {
+          console.log('PUT plant-status failed (route not implemented?). Skipping.');
+        }
+      }
+
+      // 3.1.5 DELETE USER (cleanup)
+      console.log(`\n🔹 Cleanup: DELETE /api/users/${newUserId} ...`);
+      try {
+        const delRes = await deleteUser(newUserId);
+        if (delRes?.ok) {
+          console.log('User deleted successfully.');
+        } else {
+          console.log('Unexpected delete response:', delRes);
+        }
+      } catch (e) {
+        console.log('Delete failed.');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+    }
+
+
 
     // ------------------------------------------------------------
     // 4. Test login using username + password
@@ -448,6 +605,7 @@ async function testAPI() {
         }
       }
     }
+
 
     // ------------------------------------------------------------
     console.log('\nAll tests finished.\n');
