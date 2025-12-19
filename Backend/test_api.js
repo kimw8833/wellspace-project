@@ -67,6 +67,16 @@ async function removeFriend(userId, friendId) {
   return res.data;
 }
 
+async function rejectFriendRequest(userId, requesterId) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/friends/reject`,
+    { userId, requesterId },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log(`Response:`, res.data);
+  return res.data;
+}
+
 async function testAPI() {
   try {
     // Test user info
@@ -321,7 +331,7 @@ async function testAPI() {
     // ------------------------------------------------------------
     console.log('\n🔹 Testing FRIENDS flow ...');
 
-    // ใช้ usersRes ที่เพิ่งดึงมา (step 3)
+    // Use usersRes from step 3 to find Kim and Tommy ids
     const kimId = findUserId(usersRes.data, 'Kim');
     const tommyId = findUserId(usersRes.data, 'Tommy');
 
@@ -330,7 +340,7 @@ async function testAPI() {
     } else {
       console.log(`Using Kim id=${kimId}, Tommy id=${tommyId}`);
 
-      // 21.1 Kim sends friend request to Tommy (ใช้ username)
+      // 21.1 Kim sends friend request to Tommy (Use username)
       console.log('\n   🔸 21.1 POST /api/friends/add (Kim -> Tommy) ...');
       await sendFriendRequest(kimId, 'Tommy');
 
@@ -344,7 +354,7 @@ async function testAPI() {
       if (!reqFromKim) {
         console.log('No pending request from Kim found for Tommy. (Maybe already accepted or not created)');
       } else {
-        // 21.3 Tommy accepts (ใช้ ids)
+        // 21.3 Tommy accepts (Use ids)
         console.log('\n   🔸 21.3 POST /api/friends/accept (Tommy accepts Kim) ...');
         await acceptFriendRequest(tommyId, kimId);
 
@@ -355,7 +365,7 @@ async function testAPI() {
         console.log('\n   🔸 21.5 GET /api/friends/:userId (Tommy friends) ...');
         await getFriendsList(tommyId);
 
-        // 21.6 Remove friend (จากฝั่ง Kim ก็ได้)
+        // 21.6 Remove friend (From Kim side)
         console.log('\n   🔸 21.6 DELETE /api/friends (Kim removes Tommy) ...');
         await removeFriend(kimId, tommyId);
 
@@ -368,6 +378,76 @@ async function testAPI() {
       }
     }
 
+    // ------------------------------------------------------------
+    // 22. FRIENDS RESEND TEST (Reject -> Resend -> Accept)
+    // Kim -> Tommy (send) -> Tommy reject -> Kim resend -> Tommy accept
+    // ------------------------------------------------------------
+    console.log('\n🔹 Testing FRIENDS resend flow (reject then resend) ...');
+
+    if (!kimId || !tommyId) {
+      console.log('Cannot find Kim or Tommy in /api/users. Skipping resend test.');
+    } else {
+      console.log(`Using Kim id=${kimId}, Tommy id=${tommyId}`);
+
+      // 22.0 Cleanup: if already friends, remove (ignore errors)
+      console.log('\n   🔸 22.0 Cleanup: ensure not already friends ...');
+      try { await removeFriend(kimId, tommyId); } catch (e) {}
+      try { await removeFriend(tommyId, kimId); } catch (e) {}
+
+      // 22.1 Kim sends request
+      console.log('\n   🔸 22.1 POST /api/friends/add (Kim -> Tommy) ...');
+      await sendFriendRequest(kimId, 'Tommy');
+
+      // 22.2 Tommy checks incoming + reject
+      console.log('\n   🔸 22.2 GET incoming (Tommy) then REJECT ...');
+      let incoming1 = await getIncomingFriendRequests(tommyId);
+      let req1 = (incoming1?.requests || []).find(r => r.requester_id === kimId);
+
+      if (!req1) {
+        console.log('No pending request from Kim found (cannot reject).');
+      } else {
+        console.log('\n   🔸 22.3 POST /api/friends/reject (Tommy rejects Kim) ...');
+        await rejectFriendRequest(tommyId, kimId);
+
+        // 22.4 Kim resends request (THIS IS THE BUGFIX TEST)
+        console.log('\n   🔸 22.4 POST /api/friends/add AGAIN (Kim -> Tommy) ...');
+        const resendRes = await sendFriendRequest(kimId, 'Tommy');
+
+        // soft assert
+        const msg = (resendRes?.message || '').toLowerCase();
+        if (msg.includes('existing relationship status: rejected')) {
+          console.log('FAIL: Still blocked by rejected status (bugfix not applied).');
+        } else {
+          console.log('OK: Resend did not get blocked by rejected status.');
+        }
+
+        // 22.5 Tommy should see incoming again
+        console.log('\n   🔸 22.5 GET incoming again (Tommy) ...');
+        let incoming2 = await getIncomingFriendRequests(tommyId);
+        let req2 = (incoming2?.requests || []).find(r => r.requester_id === kimId);
+
+        if (!req2) {
+          console.log('FAIL: No pending request after resend.');
+        } else {
+          console.log('OK: Pending request exists after resend.');
+
+          // 22.6 Accept
+          console.log('\n   🔸 22.6 POST /api/friends/accept (Tommy accepts Kim) ...');
+          await acceptFriendRequest(tommyId, kimId);
+
+          // 22.7 Check friends list
+          console.log('\n   🔸 22.7 GET /api/friends/:userId (Kim friends) ...');
+          await getFriendsList(kimId);
+
+          console.log('\n   🔸 22.8 GET /api/friends/:userId (Tommy friends) ...');
+          await getFriendsList(tommyId);
+
+          // 22.9 Cleanup remove friend
+          console.log('\n   🔸 22.9 Cleanup: DELETE /api/friends (Kim removes Tommy) ...');
+          await removeFriend(kimId, tommyId);
+        }
+      }
+    }
 
     // ------------------------------------------------------------
     console.log('\nAll tests finished.\n');

@@ -47,19 +47,29 @@ router.post('/api/friends/add', async (req, res) => {
     );
 
     if (existing.length > 0) {
-      const row = existing[0];
+    const row = existing[0];
 
-      if (row.status === 'accepted') {
-        return res.json({ ok: true, message: 'Already friends' });
-      }
-      if (row.status === 'pending') {
-        return res.json({ ok: true, message: 'Friend request already pending' });
-      }
+    if (row.status === 'accepted') {
+      return res.json({ ok: true, message: 'Already friends' });
+    }
 
-      return res.json({
-        ok: true,
-        message: `Existing relationship status: ${row.status}`,
-      });
+    if (row.status === 'pending') {
+      return res.json({ ok: true, message: 'Friend request already pending' });
+    }
+
+    if (row.status === 'rejected') {
+      // resend: make it pending again + make current user the requester (optional)
+      await pool.query(
+        `UPDATE friendships
+        SET status='pending', requester_id=?, receiver_id=?, created_at=NOW()
+        WHERE id=?`,
+        [userId, friendId, row.id]
+      );
+
+      return res.json({ ok: true, message: 'Friend request sent again' });
+    }
+
+      return res.json({ ok: true, message: `Existing relationship status: ${row.status}` });
     }
 
     // Create a new friend request
