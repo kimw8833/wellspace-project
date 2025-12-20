@@ -13,6 +13,8 @@ import '../widgets/friends_dialog.dart';
 import '../utils/constants.dart';
 import '../utils/formatting.dart';
 import '../models/dog_model.dart';
+import '../widgets/sprites/trophy_sprite.dart';
+import '../widgets/achievements_dialog.dart';
 
 class MyRoomPage extends StatefulWidget {
   final int userId;
@@ -62,13 +64,21 @@ class _MyRoomPageState extends State<MyRoomPage> {
     }
   }
 
-  void _openFriendsDialog() async {
+  void _openFriendsDialog() {
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (_) => FriendsDialog(
         userId: widget.userId,
       ),
+    );
+  }
+
+  void _openAchievementsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => const AchievementsDialog(),
     );
   }
 
@@ -84,21 +94,25 @@ class _MyRoomPageState extends State<MyRoomPage> {
     final screenW = MediaQuery.of(context).size.width;
     final screenH = MediaQuery.of(context).size.height;
 
-    // PLANT POSITION
+    // PLANT
     final leftPlantX = 1450 * (screenW / CanvasSize.width);
     final bottomPlantY = 1006 * (screenH / CanvasSize.height);
 
-    // DOG POSITION
+    // DOG
     final rightDogX = 260 * (screenW / CanvasSize.width);
     final bottomDogY = 260 * (screenH / CanvasSize.height);
 
-    // CLOCK POSITION (+x, +y quadrant)
+    // CLOCK
     final rightClockX = 150 * (screenW / CanvasSize.width);
     final bottomClockY = 1100 * (screenH / CanvasSize.height);
 
-    // FRIEND PICTURE POSITION
+    // FRIEND PICTURE
     final rightFriendPictureX = 1100 * (screenW / CanvasSize.width);
     final bottomFriendPictureY = 750 * (screenH / CanvasSize.height);
+
+    // TROPHY — ON DESK
+    final rightTrophyX = 800 * (screenW / CanvasSize.width);
+    final bottomTrophyY = 880 * (screenH / CanvasSize.height);
 
     return Scaffold(
       body: Stack(
@@ -153,17 +167,28 @@ class _MyRoomPageState extends State<MyRoomPage> {
             right: rightFriendPictureX,
             bottom: bottomFriendPictureY,
             child: Transform.scale(
-                scale: SpriteScale.friendPicture,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    _openFriendsDialog();
-                  },
-                  child: FriendPictureSprite(),
-                )),
+              scale: SpriteScale.friendPicture,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _openFriendsDialog,
+                child: FriendPictureSprite(),
+              ),
+            ),
           ),
 
-          // MENU + DEBUG BUTTONS
+          // TROPHY (ACHIEVEMENTS)
+          Positioned(
+            right: rightTrophyX,
+            bottom: bottomTrophyY,
+            child: Transform.scale(
+              scale: 1.8,
+              child: TrophySprite(
+                onTap: _openAchievementsDialog,
+              ),
+            ),
+          ),
+
+          // MENU + DEBUG
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -175,7 +200,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     RoomMenuButton(
                       onSettings: _openSettingsDialog,
                       onLogout: () => Navigator.of(context).pop(),
-                      onAchievements: () {},
+                      onAchievements: _openAchievementsDialog,
                       onFriends: _openFriendsDialog,
                     ),
                     if (isDeveloper)
