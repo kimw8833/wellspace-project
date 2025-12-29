@@ -29,6 +29,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
   late RoomController controller;
   bool _debugVisible = false;
 
+  final GlobalKey _coinPillKey = GlobalKey();
+
   bool get isDeveloper => widget.userId == 1;
 
   @override
@@ -81,12 +83,16 @@ class _MyRoomPageState extends State<MyRoomPage> {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => AchievementsDialog(controller: controller),
+      builder: (_) => AchievementsDialog(
+        controller: controller,
+        coinPillKey: _coinPillKey,
+      ),
     );
   }
 
   Widget _coinPill() {
     return Container(
+      key: _coinPillKey,
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(

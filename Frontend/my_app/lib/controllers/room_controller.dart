@@ -10,6 +10,10 @@ import '../models/room_state.dart';
 import '../services/api_service.dart';
 import '../models/achievement_definitions.dart';
 
+import 'dart:async';
+import 'dart:math';
+
+
 
 class RoomController extends ChangeNotifier {
   final int userId;
@@ -24,7 +28,50 @@ class RoomController extends ChangeNotifier {
   int waterToday = 0;
   int dailyWaterGoal = 2000;
   int dailyStepGoal = 10000;
+  
+  // COINS
   int coins = 0;
+  int coinsDisplay = 0;
+
+  Timer? _coinRampTimer;
+
+  void setCoinsImmediate(int v) {
+    coins = v;
+    coinsDisplay = v;
+    notifyListeners();
+  }
+
+  void rampCoinsDisplayTo(
+    int target, {
+    Duration duration = const Duration(milliseconds: 650),
+  }) {
+    _coinRampTimer?.cancel();
+    target = max(0, target);
+
+    final start = coinsDisplay;
+    final diff = target - start;
+    if (diff == 0) return;
+
+    final ticks = max(1, (duration.inMilliseconds / 16).round());
+    final step = diff / ticks;
+
+    var tick = 0;
+    _coinRampTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+      tick++;
+      final next = start + (step * tick);
+      final rounded = diff > 0 ? next.floor() : next.ceil();
+      coinsDisplay = diff > 0 ? min(rounded, target) : max(rounded, target);
+      notifyListeners();
+
+      if (tick >= ticks || coinsDisplay == target) {
+        coinsDisplay = target;
+        notifyListeners();
+        t.cancel();
+      }
+    });
+  }
+
+
 
   // Loading state
   bool isLoading = true;
@@ -70,6 +117,7 @@ class RoomController extends ChangeNotifier {
       0,
     );
     dog = DogModel(startOfDay: start, stepGoal: dailyStepGoal);
+    coinsDisplay = coins;
 
     _initialize();
   }

@@ -9,7 +9,10 @@ class AchievementRow extends StatelessWidget {
   final bool completed;
   final bool claimed;
   final bool isPlaceholder;
-  final VoidCallback onClaim;
+
+  // CHANGED: onClaim now provides the global screen position of the CLAIM button
+  final void Function(Offset fromGlobal) onClaim;
+
   final AchievementRowStyle style;
 
   const AchievementRow({
@@ -25,7 +28,9 @@ class AchievementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return style == AchievementRowStyle.diploma ? _DiplomaRow(this) : _CozyRow(this);
+    return style == AchievementRowStyle.diploma
+        ? _DiplomaRow(this)
+        : _CozyRow(this);
   }
 }
 
@@ -51,12 +56,13 @@ class _DiplomaRow extends StatelessWidget {
           Icon(
             p.isPlaceholder
                 ? Icons.auto_awesome_outlined
-                : (p.claimed ? Icons.verified : (p.completed ? Icons.check_circle : Icons.bookmark_border)),
+                : (p.claimed
+                    ? Icons.verified
+                    : (p.completed ? Icons.check_circle : Icons.bookmark_border)),
             color: Colors.black.withOpacity(muted ? 0.35 : 0.55),
             size: 22,
           ),
           const SizedBox(width: 10),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,9 +102,7 @@ class _DiplomaRow extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(width: 10),
-
           _DiplomaRightSide(
             coins: p.definition.rewardCoins,
             isPlaceholder: p.isPlaceholder,
@@ -117,7 +121,9 @@ class _DiplomaRightSide extends StatelessWidget {
   final bool isPlaceholder;
   final bool completed;
   final bool claimed;
-  final VoidCallback onClaim;
+
+  // CHANGED
+  final void Function(Offset fromGlobal) onClaim;
 
   const _DiplomaRightSide({
     required this.coins,
@@ -160,22 +166,36 @@ class _DiplomaRightSide extends StatelessWidget {
       children: [
         _CoinPill(coins: coins, muted: false),
         const SizedBox(height: 8),
-        TextButton(
-          onPressed: onClaim,
-          style: TextButton.styleFrom(
-            backgroundColor: const Color(0xFF2A2A2A),
-            foregroundColor: const Color(0xFFF9F4EA),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: const Text(
-            'CLAIM',
-            style: TextStyle(
-              fontFamily: 'serif',
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.0,
-            ),
-          ),
+
+        // IMPORTANT: we must measure the button's position, so we use Builder()
+        Builder(
+          builder: (btnCtx) {
+            return TextButton(
+              onPressed: () {
+                final box = btnCtx.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final from =
+                    box.localToGlobal(box.size.center(Offset.zero));
+                onClaim(from);
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFF2A2A2A),
+                foregroundColor: const Color(0xFFF9F4EA),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text(
+                'CLAIM',
+                style: TextStyle(
+                  fontFamily: 'serif',
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -193,7 +213,9 @@ class _CoinPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: muted ? Colors.black.withOpacity(0.05) : const Color(0xFFF2D08A).withOpacity(0.55),
+        color: muted
+            ? Colors.black.withOpacity(0.05)
+            : const Color(0xFFF2D08A).withOpacity(0.55),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.black.withOpacity(0.12)),
       ),
@@ -221,7 +243,8 @@ class _Stamp extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(muted ? 0.04 : 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.black.withOpacity(muted ? 0.12 : 0.20)),
+        border:
+            Border.all(color: Colors.black.withOpacity(muted ? 0.12 : 0.20)),
       ),
       child: Text(
         label,
@@ -246,7 +269,9 @@ class _DiplomaProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = Colors.black.withOpacity(0.10);
-    final fill = muted ? Colors.black.withOpacity(0.16) : const Color(0xFF8B6B2B).withOpacity(0.70);
+    final fill = muted
+        ? Colors.black.withOpacity(0.16)
+        : const Color(0xFF8B6B2B).withOpacity(0.70);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
@@ -265,15 +290,12 @@ class _DiplomaProgress extends StatelessWidget {
   }
 }
 
-// Kept so you can switch styles later without breaking imports.
-// Not used by the diploma dialog right now.
 class _CozyRow extends StatelessWidget {
   final AchievementRow p;
   const _CozyRow(this.p);
 
   @override
   Widget build(BuildContext context) {
-    // fallback simple
     return _DiplomaRow(p);
   }
 }

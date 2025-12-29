@@ -5,10 +5,21 @@ import '../controllers/room_controller.dart';
 import '../models/achievement_definitions.dart';
 import 'sprites/achievement_row.dart';
 
+
+// NEW: coin fly overlay helper
+import 'fx/coin_fly_fx.dart';
+
 class AchievementsDialog extends StatefulWidget {
   final RoomController controller;
 
-  const AchievementsDialog({super.key, required this.controller});
+  // NEW: target key for the coin pill in room_page
+  final GlobalKey coinPillKey;
+
+  const AchievementsDialog({
+    super.key,
+    required this.controller,
+    required this.coinPillKey,
+  });
 
   @override
   State<AchievementsDialog> createState() => _AchievementsDialogState();
@@ -93,12 +104,13 @@ class _AchievementsDialogState extends State<AchievementsDialog> {
 
                             Row(
                               children: [
-                                Expanded(child: _Hairline()),
+                                const Expanded(child: _Hairline()),
                                 const SizedBox(width: 10),
                                 Icon(Icons.emoji_events_outlined,
-                                    color: Colors.black.withOpacity(0.35), size: 18),
+                                    color: Colors.black.withOpacity(0.35),
+                                    size: 18),
                                 const SizedBox(width: 10),
-                                Expanded(child: _Hairline()),
+                                const Expanded(child: _Hairline()),
                               ],
                             ),
 
@@ -120,6 +132,7 @@ class _AchievementsDialogState extends State<AchievementsDialog> {
                                   child: _AchievementList(
                                     controller: widget.controller,
                                     showClaimed: _tabIndex == 1,
+                                    coinPillKey: widget.coinPillKey,
                                   ),
                                 ),
                               ),
@@ -205,9 +218,13 @@ class _AchievementList extends StatelessWidget {
   final RoomController controller;
   final bool showClaimed;
 
+  // NEW
+  final GlobalKey coinPillKey;
+
   const _AchievementList({
     required this.controller,
     required this.showClaimed,
+    required this.coinPillKey,
   });
 
   @override
@@ -225,7 +242,9 @@ class _AchievementList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 60),
         child: Center(
           child: Text(
-            showClaimed ? 'No claimed achievements yet.' : 'No unclaimed achievements.',
+            showClaimed
+                ? 'No claimed achievements yet.'
+                : 'No unclaimed achievements.',
             style: const TextStyle(
               fontFamily: 'serif',
               color: Color(0xFF6A6A6A),
@@ -236,7 +255,6 @@ class _AchievementList extends StatelessWidget {
       );
     }
 
-    // NOTE: no fixed height list; it lives inside SingleChildScrollView
     return Column(
       children: [
         for (final def in filtered) ...[
@@ -254,7 +272,41 @@ class _AchievementList extends StatelessWidget {
                 completed: completed,
                 claimed: claimed,
                 isPlaceholder: isPlaceholder,
-                onClaim: () => controller.claimAchievement(def.index),
+
+                // UPDATED: now receives the "from" position of the CLAIM button
+                onClaim: (fromGlobal) async {
+                  // 1) Find target pill position (where coins should fly to)
+                  final pillCtx = coinPillKey.currentContext;
+                  final pillBox = pillCtx?.findRenderObject() as RenderBox?;
+                  if (pillBox == null) return;
+
+                  final toGlobal =
+                      pillBox.localToGlobal(pillBox.size.center(Offset.zero));
+
+                  // 2) Claim in logic (this should update controller.coins)
+                  final before = controller.coins;
+                  controller.claimAchievement(def.index);
+                  final after = controller.coins;
+                  final reward = after - before;
+
+                  // If no reward change, don't animate
+                  if (reward <= 0) return;
+
+                  // 3) Fly coins overlay; when it lands, ramp the number
+                  final swarm = (reward / 5).clamp(6, 14).toInt();
+
+                  await CoinFlyFx.play(
+                    context: context,
+                    from: fromGlobal,
+                    to: toGlobal,
+                    coinCount: swarm,
+                    duration: const Duration(milliseconds: 1600),
+                    onArrive: () {
+                      controller.rampCoinsDisplayTo(after);
+                    },
+                  );
+                },
+
                 style: AchievementRowStyle.diploma,
               ),
             );
@@ -381,7 +433,9 @@ class _DiplomaToggle extends StatelessWidget {
                   fontFamily: 'serif',
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.6,
-                  color: selected ? const Color(0xFFF9F4EA) : const Color(0xFF2A2A2A),
+                  color: selected
+                      ? const Color(0xFFF9F4EA)
+                      : const Color(0xFF2A2A2A),
                 ),
               ),
             ),
