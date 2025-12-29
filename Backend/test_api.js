@@ -13,6 +13,25 @@ const API_BASE_URL =
   'https://paragogically-unlegible-grazyna.ngrok-free.dev';
 
 // -------------------------------
+// COIN TEST HELPERS
+// -------------------------------
+async function getUserCoin(userId) {
+  const res = await axios.get(`${API_BASE_URL}/api/users/${userId}/coin`);
+  console.log('helper getUserCoin Response:', res.data);
+  return res.data;
+}
+
+async function updateUserCoin(userId, coin) {
+  const res = await axios.put(
+    `${API_BASE_URL}/api/users/${userId}/coin`,
+    { coin },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  console.log('helper updateUserCoin Response:', res.data);
+  return res.data;
+}
+
+// -------------------------------
 // FRIEND TEST HELPERS
 // -------------------------------
 
@@ -222,7 +241,7 @@ async function testAPI() {
       try {
         const rsRes = await axios.get(`${API_BASE_URL}/api/room-status/${newUserId}`);
         console.log('Response:', rsRes.data);
-        console.log('✅ room_status exists for new user.');
+        console.log('room_status exists for new user.');
         verified = true;
       } catch (e) {
         console.log('/api/room-status failed. Trying /api/plant-status instead...');
@@ -230,7 +249,7 @@ async function testAPI() {
         try {
           const plantRes2 = await axios.get(`${API_BASE_URL}/api/plant-status/${newUserId}`);
           console.log('Response:', plantRes2.data);
-          console.log('✅ plant-status works => room_status row likely exists.');
+          console.log('plant-status works => room_status row likely exists.');
           verified = true;
         } catch (e2) {
           console.log('Could not verify room_status for new user.');
@@ -581,7 +600,83 @@ async function testAPI() {
       `${API_BASE_URL}/api/user-location/${testUserId}`
     );
     console.log('Re-checked user_location:', ulRes.data.user_location);
-  
+
+    // ------------------------------------------------------------
+    // 20.1 COIN FLOW TEST (GET -> PUT -> GET)
+    // ------------------------------------------------------------
+    console.log(`\n🔹 Testing COIN flow ...`);
+
+    try {
+      // 20.1.1 GET coin before
+      console.log(`\n   🔸 GET /api/users/${testUserId}/coin (before) ...`);
+      const coinBeforeRes = await getUserCoin(testUserId);
+      const coinBefore = coinBeforeRes?.coin;
+
+      console.log('Coin BEFORE:', coinBefore);
+
+      // 20.1.2 PUT coin update (set new value)
+      const newCoinValue = (typeof coinBefore === 'number' ? coinBefore : 0) + 10;
+      console.log(`\n   🔸 PUT /api/users/${testUserId}/coin (set coin=${newCoinValue}) ...`);
+      await updateUserCoin(testUserId, newCoinValue);
+
+      // 20.1.3 GET coin after
+      console.log(`\n   🔸 GET /api/users/${testUserId}/coin (after) ...`);
+      const coinAfterRes = await getUserCoin(testUserId);
+      const coinAfter = coinAfterRes?.coin;
+
+      console.log('Coin AFTER:', coinAfter);
+
+      // Soft assert
+      if (coinAfter !== newCoinValue) {
+        console.log(`FAIL: coin expected ${newCoinValue} but got`, coinAfter);
+      } else {
+        console.log('OK: coin updated correctly');
+      }
+
+      // 20.1.4 Negative test: missing coin body
+      console.log(`\n   🔸 Negative: PUT /api/users/${testUserId}/coin without coin (should be 400) ...`);
+      try {
+        await axios.put(
+          `${API_BASE_URL}/api/users/${testUserId}/coin`,
+          {}, // missing coin
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        console.log('FAIL: missing coin should not succeed');
+      } catch (e) {
+        console.log('OK: missing coin rejected');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+
+      // 20.1.5 Negative test: invalid userId
+      console.log(`\n   🔸 Negative: GET /api/users/-1/coin (should be 404 or 400) ...`);
+      try {
+        await getUserCoin(-1);
+        console.log('FAIL: invalid userId should not succeed');
+      } catch (e) {
+        console.log('OK: invalid userId rejected');
+        if (e.response) {
+          console.log('Status:', e.response.status);
+          console.log('Data  :', e.response.data);
+        } else {
+          console.log('Message:', e.message);
+        }
+      }
+
+    } catch (e) {
+      console.log('Coin flow failed unexpectedly.');
+      if (e.response) {
+        console.log('Status:', e.response.status);
+        console.log('Data  :', e.response.data);
+      } else {
+        console.log('Message:', e.message);
+      }
+    }
+
     // ------------------------------------------------------------
     // 21. FRIENDS FLOW TEST (Final Pattern)
     // Kim sends request to Tommy -> Tommy accepts -> list -> remove
