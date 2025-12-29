@@ -16,6 +16,60 @@ class ApiService {
         'ngrok-skip-browser-warning': 'true',
       };
 
+  // 
+  // COIN
+  // 
+  // GET user coin
+  // Backend: GET /api/users/:userId/coin
+  // Response: { ok: true, coin: 10 }
+  //
+  Future<int?> getUserCoin(int userId) async {
+    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
+
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+      print("Coin RAW: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final value = data["coin"];
+        if (value is num) return value.toInt();
+        return int.tryParse(value.toString());
+      }
+    } catch (e) {
+      print("Get coin error: $e");
+    }
+
+    return null;
+  }
+
+  //
+  // UPDATE user coin (set value)
+  // Backend: PUT /api/users/:userId/coin
+  // Body: { coin: int }
+  //
+  Future<bool> updateUserCoin(int userId, int coin) async {
+    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
+
+    // Ensure coin is not negative
+    // Delete this line if negative coins are allowed in the future
+    final int safeCoin = coin < 0 ? 0 : coin;
+
+    try {
+      final response = await http.put(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({"coin": safeCoin}),
+      );
+
+      print("Updated coin: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update coin error: $e");
+      return false;
+    }
+  }
+
   //
   // REGISTER (plain text)
   //

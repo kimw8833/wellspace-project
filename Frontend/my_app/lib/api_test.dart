@@ -372,5 +372,38 @@ Future<void> main() async {
     }
   }
 
+  // ---------------------------------------------------------
+  // COIN (GET + PUT + GET)
+  // ---------------------------------------------------------
+  print("\n=== COIN TEST ===");
+
+  // 1) GET coin (before)
+  final coinBefore = await api.getUserCoin(userId);
+  print("Coin BEFORE = $coinBefore");
+
+  // 2) UPDATE coin (set new value)
+  final newCoinValue = (coinBefore ?? 0) + 10;
+  final okCoin = await api.updateUserCoin(userId, newCoinValue);
+
+  if (okCoin) {
+    print("OK: update coin to $newCoinValue");
+  } else {
+    print("FAIL: update coin to $newCoinValue");
+  }
+
+  // 3) GET coin (after)
+  final coinAfter = await api.getUserCoin(userId);
+  print("Coin AFTER = $coinAfter");
+
+  // 4) Verify value
+  if (coinAfter == newCoinValue) {
+    print("OK: coin updated correctly ($coinAfter)");
+  } else {
+    print("FAIL: coin expected $newCoinValue, got $coinAfter");
+  }
+
+  print("=== END COIN TEST ===\n");
+
+
   print("==== DONE TESTING ====");
 }
