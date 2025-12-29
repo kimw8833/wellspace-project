@@ -1,8 +1,8 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// UPDATED IMPORTS — matches your new structure
 import 'pages/room_page.dart';
 import 'services/api_service.dart';
 
@@ -15,8 +15,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pick one font family for the whole app (simple + consistent).
+    // Nunito feels cozy and game-y without screaming "corporate UI".
+    final textTheme = GoogleFonts.nunitoTextTheme();
+
     return MaterialApp(
       title: 'Wellspace',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        textTheme: textTheme,
+        // Optional: make buttons/inputs inherit the same font
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            textStyle: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          labelStyle: textTheme.bodyMedium,
+          hintStyle: textTheme.bodyMedium,
+        ),
+      ),
       home: const MyHomePage(title: 'Wellspace'),
     );
   }
@@ -93,8 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       );
                     } else {
-                      final errorMessage =
-                          loginData["error"] ?? "Login failed";
+                      final errorMessage = loginData["error"] ?? "Login failed";
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(errorMessage)),
                       );

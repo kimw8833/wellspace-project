@@ -8,6 +8,8 @@ import '../models/dog_model.dart';
 import '../models/time_simulation.dart';
 import '../models/room_state.dart';
 import '../services/api_service.dart';
+import '../models/achievement_definitions.dart';
+
 
 class RoomController extends ChangeNotifier {
   final int userId;
@@ -22,6 +24,7 @@ class RoomController extends ChangeNotifier {
   int waterToday = 0;
   int dailyWaterGoal = 2000;
   int dailyStepGoal = 10000;
+  int coins = 0;
 
   // Loading state
   bool isLoading = true;
@@ -29,6 +32,31 @@ class RoomController extends ChangeNotifier {
   // Timers
   Timer? _simTimer;
   Timer? _realTimeTimer;
+
+  // ===================================================
+  //                ACHIEVEMENTS (INDEX-DRIVEN)
+  // ===================================================
+
+  /// achievement_index -> progress (0–100)
+  final Map<int, int> _achievementProgress = {1: 0, 2: 0, 3: 0};
+
+  /// achievement_index values that have been claimed (frontend-only for now)
+  final Set<int> _claimedAchievements = {};
+
+  /// Explorer achievement (index 1): unique events only
+  final Set<String> _explorerEventsSeen = {};
+
+  static const int explorerAchievementIndex = 1;
+
+  /// These are the only events that should count toward “Welcome Home”.
+  /// (You can add more later, but keep it explicit.)
+  static const List<String> explorerRequiredEvents = [
+    'open_achievements',
+    'open_friends',
+    'open_settings',
+  ];
+  
+
 
   RoomController(this.userId) {
     plant = PlantModel();
@@ -50,9 +78,6 @@ class RoomController extends ChangeNotifier {
   //                EFFECTIVE TIME SOURCE
   // ===================================================
 
-  /// The time the app considers "now".
-  /// - Real time if auto-sim is OFF
-  /// - Simulated time if auto-sim is ON
   DateTime get effectiveNow {
     return time.autoSimRunning ? time.simulatedTime : DateTime.now();
   }
@@ -63,11 +88,10 @@ class RoomController extends ChangeNotifier {
 
   Future<void> _initialize() async {
     await _loadInitialBackendState();
+    await _loadAchievementsFromBackend();
     isLoading = false;
 
-    // Start real-time ticking immediately
     _startRealTimeTicker();
-
     notifyListeners();
   }
 
@@ -117,6 +141,81 @@ class RoomController extends ChangeNotifier {
     if (waterGoal != null) {
       dailyWaterGoal = waterGoal;
     }
+  }
+
+  Future<void> _loadAchievementsFromBackend() async {
+    // ApiService returns List<Map<String, dynamic>>
+    final list = await _api.getAchievements(userId);
+    for (final a in list) {
+      final index = a['achievement_index'];
+      final progress = a['progress'];
+      if (index is int && progress is int && _achievementProgress.containsKey(index)) {
+        _achievementProgress[index] = progress.clamp(0, 100);
+      }
+    }
+  }
+
+  // ===================================================
+  //                ACHIEVEMENT PUBLIC API
+  // ===================================================
+
+  int achievementProgress(int index) => _achievementProgress[index] ?? 0;
+
+  bool isAchievementCompleted(int index) => achievementProgress(index) >= 100;
+
+  bool isAchievementClaimed(int index) => _claimedAchievements.contains(index);
+
+  void claimAchievement(int index) {
+    if (!isAchievementCompleted(index)) return;
+    if (isAchievementClaimed(index)) return;
+
+    _claimedAchievements.add(index);
+
+    final def = achievementDefinitions[index];
+    if (def != null && def.rewardCoins > 0) {
+      coins += def.rewardCoins;
+    }
+
+    notifyListeners();
+  }
+
+
+  // ===================================================
+  //                ACHIEVEMENT 1: EXPLORER
+  // ===================================================
+
+  /// Call this from UI when the user opens a feature.
+  /// Only counts the FIRST time per eventKey.
+  void registerExplorerEvent(String eventKey) {
+    if (!explorerRequiredEvents.contains(eventKey)) return;
+    if (_explorerEventsSeen.contains(eventKey)) return;
+
+    _explorerEventsSeen.add(eventKey);
+    _recomputeExplorerProgressAndSync();
+  }
+
+  void _recomputeExplorerProgressAndSync() {
+    final required = explorerRequiredEvents.length;
+    final seen = _explorerEventsSeen.length.clamp(0, required);
+
+    // Deterministic progress: 0..100
+    final nextProgress = ((seen * 100) / required).round().clamp(0, 100);
+    _setAchievementProgressAndSync(explorerAchievementIndex, nextProgress);
+  }
+
+  void _setAchievementProgressAndSync(int index, int nextProgress) {
+    final current = _achievementProgress[index] ?? 0;
+    final clamped = nextProgress.clamp(0, 100);
+
+    if (clamped == current) {
+      notifyListeners();
+      return;
+    }
+
+    _achievementProgress[index] = clamped;
+    // Persist progress via your existing backend method
+    _api.updateAchievementProgress(userId, index, clamped);
+    notifyListeners();
   }
 
   // ===================================================
@@ -285,6 +384,12 @@ class RoomController extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  void addCoins(int amount) {
+    coins += amount;
+    notifyListeners();
+  }
+
 
   // ===================================================
   //                BACKEND SYNC

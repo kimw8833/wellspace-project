@@ -50,6 +50,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   void _openSettingsDialog() async {
+    controller.registerExplorerEvent('open_settings');
     final result = await showDialog(
       context: context,
       barrierDismissible: true,
@@ -65,6 +66,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   void _openFriendsDialog() {
+    controller.registerExplorerEvent('open_friends');
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -75,10 +77,49 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   void _openAchievementsDialog() {
+    controller.registerExplorerEvent('open_achievements');
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => const AchievementsDialog(),
+      builder: (_) => AchievementsDialog(controller: controller),
+    );
+  }
+
+  Widget _coinPill() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.75),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.black.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.monetization_on,
+            size: 18,
+            color: Color(0xFFB28A2E),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            controller.coins.toString(),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF2A2A2A),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -197,6 +238,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    _coinPill(),
                     RoomMenuButton(
                       onSettings: _openSettingsDialog,
                       onLogout: () => Navigator.of(context).pop(),
