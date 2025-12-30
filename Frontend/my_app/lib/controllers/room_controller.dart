@@ -189,6 +189,11 @@ class RoomController extends ChangeNotifier {
     if (waterGoal != null) {
       dailyWaterGoal = waterGoal;
     }
+
+    final coinsFromDb = await _api.getUserCoin(userId);
+    if(coinsFromDb != null) {
+      coins = coinsFromDb;
+    }
   }
 
   Future<void> _loadAchievementsFromBackend() async {
@@ -222,6 +227,9 @@ class RoomController extends ChangeNotifier {
     final def = achievementDefinitions[index];
     if (def != null && def.rewardCoins > 0) {
       coins += def.rewardCoins;
+
+      unawaited(_api.updateUserCoin(userId, coins));
+
     }
 
     notifyListeners();
