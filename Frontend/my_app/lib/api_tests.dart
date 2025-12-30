@@ -111,32 +111,68 @@ Future<void> main() async {
   }
 
   // ---------------------------------------------------------
-  // 2) ACHIEVEMENTS (GET + PUT + GET)
+  // 2) ACHIEVEMENTS (GET + PUT + GET) + claimed + tier
   // ---------------------------------------------------------
-  await t.test('ACHIEVEMENTS: update index 1=55, index 2=100', () async {
-    // before (optional, to make sure the endpoint works)
+  await t.test('ACHIEVEMENTS: progress + claimed + tier', () async {
+    int _toInt(dynamic v, [int def = 0]) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '') ?? def;
+    }
+
+    // before (optional)
     final before = await api.getAchievements(userId);
     t.expect(before is List, 'getAchievements should return a list');
 
-    // update
-    final ok1 = await api.updateAchievementProgress(userId, 1, 55);
-    t.expect(ok1 == true, 'updateAchievementProgress(1,55) should succeed');
+    // -------------------------
+    // UPDATE
+    // -------------------------
+    final okP1 = await api.updateAchievementProgress(userId, 1, 55);
+    t.expect(okP1 == true, 'updateAchievementProgress(index=1,55) should succeed');
 
-    final ok2 = await api.updateAchievementProgress(userId, 2, 100);
-    t.expect(ok2 == true, 'updateAchievementProgress(2,100) should succeed');
+    final okP2 = await api.updateAchievementProgress(userId, 2, 100);
+    t.expect(okP2 == true, 'updateAchievementProgress(index=2,100) should succeed');
 
-    // after verify
+    // set claimed + tier (ตัวอย่าง: index1 claimed=1 tier=2, index2 claimed=0 tier=1)
+    final okC1 = await api.updateAchievementClaimed(userId, 1, 1);
+    t.expect(okC1 == true, 'updateAchievementClaimed(index=1,1) should succeed');
+
+    final okT1 = await api.updateAchievementTier(userId, 1, 2);
+    t.expect(okT1 == true, 'updateAchievementTier(index=1,2) should succeed');
+
+    final okC2 = await api.updateAchievementClaimed(userId, 2, 0);
+    t.expect(okC2 == true, 'updateAchievementClaimed(index=2,0) should succeed');
+
+    final okT2 = await api.updateAchievementTier(userId, 2, 1);
+    t.expect(okT2 == true, 'updateAchievementTier(index=2,1) should succeed');
+
+    // -------------------------
+    // VERIFY
+    // -------------------------
     final after = await api.getAchievements(userId);
 
-    int? p1;
-    int? p2;
+    Map<String, dynamic>? a1;
+    Map<String, dynamic>? a2;
+
     for (final a in after) {
-      if (a["achievement_index"] == 1) p1 = a["progress"];
-      if (a["achievement_index"] == 2) p2 = a["progress"];
+      if (a["achievement_index"] == 1) a1 = a;
+      if (a["achievement_index"] == 2) a2 = a;
     }
 
-    t.expectEq(p1, 55, 'achievement 1 progress should be 55');
-    t.expectEq(p2, 100, 'achievement 2 progress should be 100');
+    t.expect(a1 != null, 'achievement index 1 should exist');
+    t.expect(a2 != null, 'achievement index 2 should exist');
+
+    // progress
+    t.expectEq(_toInt(a1!["progress"]), 55, 'achievement 1 progress should be 55');
+    t.expectEq(_toInt(a2!["progress"]), 100, 'achievement 2 progress should be 100');
+
+    // claimed (0/1)
+    t.expectEq(_toInt(a1["claimed"]), 1, 'achievement 1 claimed should be 1');
+    t.expectEq(_toInt(a2["claimed"]), 0, 'achievement 2 claimed should be 0');
+
+    // tier
+    t.expectEq(_toInt(a1["tier"]), 2, 'achievement 1 tier should be 2');
+    t.expectEq(_toInt(a2["tier"]), 1, 'achievement 2 tier should be 1');
   });
 
   // ---------------------------------------------------------

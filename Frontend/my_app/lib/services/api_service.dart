@@ -16,59 +16,59 @@ class ApiService {
         'ngrok-skip-browser-warning': 'true',
       };
 
-  // 
-  // COIN
-  // 
-  // GET user coin
-  // Backend: GET /api/users/:userId/coin
-  // Response: { ok: true, coin: 10 }
-  //
-  Future<int?> getUserCoin(int userId) async {
-    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
+  // // 
+  // // COIN
+  // // 
+  // // GET user coin
+  // // Backend: GET /api/users/:userId/coin
+  // // Response: { ok: true, coin: 10 }
+  // //
+  // Future<int?> getUserCoin(int userId) async {
+  //   final url = Uri.parse('$baseUrl/api/users/$userId/coin');
 
-    try {
-      final response = await http.get(url, headers: _getHeaders);
-      print("Coin RAW: ${response.body}");
+  //   try {
+  //     final response = await http.get(url, headers: _getHeaders);
+  //     print("Coin RAW: ${response.body}");
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final value = data["coin"];
-        if (value is num) return value.toInt();
-        return int.tryParse(value.toString());
-      }
-    } catch (e) {
-      print("Get coin error: $e");
-    }
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //       final value = data["coin"];
+  //       if (value is num) return value.toInt();
+  //       return int.tryParse(value.toString());
+  //     }
+  //   } catch (e) {
+  //     print("Get coin error: $e");
+  //   }
 
-    return null;
-  }
+  //   return null;
+  // }
 
-  //
-  // UPDATE user coin (set value)
-  // Backend: PUT /api/users/:userId/coin
-  // Body: { coin: int }
-  //
-  Future<bool> updateUserCoin(int userId, int coin) async {
-    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
+  // //
+  // // UPDATE user coin (set value)
+  // // Backend: PUT /api/users/:userId/coin
+  // // Body: { coin: int }
+  // //
+  // Future<bool> updateUserCoin(int userId, int coin) async {
+  //   final url = Uri.parse('$baseUrl/api/users/$userId/coin');
 
-    // Ensure coin is not negative
-    // Delete this line if negative coins are allowed in the future
-    final int safeCoin = coin < 0 ? 0 : coin;
+  //   // Ensure coin is not negative
+  //   // Delete this line if negative coins are allowed in the future
+  //   final int safeCoin = coin < 0 ? 0 : coin;
 
-    try {
-      final response = await http.put(
-        url,
-        headers: _jsonHeaders,
-        body: json.encode({"coin": safeCoin}),
-      );
+  //   try {
+  //     final response = await http.put(
+  //       url,
+  //       headers: _jsonHeaders,
+  //       body: json.encode({"coin": safeCoin}),
+  //     );
 
-      print("Updated coin: ${response.body}");
-      return response.statusCode == 200;
-    } catch (e) {
-      print("Update coin error: $e");
-      return false;
-    }
-  }
+  //     print("Updated coin: ${response.body}");
+  //     return response.statusCode == 200;
+  //   } catch (e) {
+  //     print("Update coin error: $e");
+  //     return false;
+  //   }
+  // }
 
   //
   // REGISTER (plain text)
@@ -138,80 +138,132 @@ class ApiService {
       return {"success": false, "error": e.toString()};
     }
   }
+  // --------------------------------------------------
+  // ACHIEVEMENTS
+  // --------------------------------------------------
 
-// --------------------------------------------------
-// ACHIEVEMENTS
-// --------------------------------------------------
+  // GET achievements for a user
+  //
+  // Backend:
+  //   GET /api/achievements/:userId
+  // Expected response:
+  //   { "success": true, "achievements": [ { "achievement_index": 1, "progress": 55, "claimed": 0/1, "tier": 0 }, ... ] }
+  //
+  // Returns:
+  //   List<Map<String,dynamic>> (ถ้าพังคืน [])
+  Future<List<Map<String, dynamic>>> getAchievements(int userId) async {
+    final url = Uri.parse('$baseUrl/api/achievements/$userId');
 
-// GET achievements for a user
-//
-// Backend:
-//   GET /api/achievements/:userId
-// Expected response:
-//   { "success": true, "achievements": [ { "achievement_index": 1, "progress": 55 }, ... ] }
-//
-// Returns:
-//   List of maps: [{achievement_index: int, progress: int}, ...]
-//   If anything fails, returns [].
-Future<List<Map<String, dynamic>>> getAchievements(int userId) async {
-  final url = Uri.parse('$baseUrl/api/achievements/$userId');
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+      print("Achievements RAW: ${response.body}");
 
-  try {
-    final response = await http.get(url, headers: _getHeaders);
-    print("Achievements RAW: ${response.body}");
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+        final ok = data["success"] == true || data["ok"] == true;
+        if (!ok) return [];
 
-      // Support both:
-      // - { success:true, achievements:[...] }
-      // - { ok:true, achievements:[...] } (just in case)
-      final ok = data["success"] == true || data["ok"] == true;
-      if (!ok) return [];
+        final List list = data["achievements"] ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
 
-      final List list = data["achievements"] ?? [];
-      return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      return [];
+    } catch (e) {
+      print("Get achievements error: $e");
+      return [];
     }
-
-    return [];
-  } catch (e) {
-    print("Get achievements error: $e");
-    return [];
   }
-}
 
-// UPDATE/UPSERT achievement progress
-//
-// Backend:
-//   PUT /api/achievements/:userId/:index
-// Body:
-//   { "progress": 0..100 }
-//
-// Expected response:
-//   { "success": true, ... }  (or at least statusCode 200)
-//
-// Returns:
-//   true if statusCode == 200
-Future<bool> updateAchievementProgress(int userId, int achievementIndex, int progress) async {
-  final url = Uri.parse('$baseUrl/api/achievements/$userId/$achievementIndex');
+  // --------------------------------------------------
+  // UPDATE progress (UPSERT)
+  //
+  // Backend:
+  //   PUT /api/achievements/:userId/:index/progress
+  // Body:
+  //   { "progress": 0..100 }
+  //
+  // Returns: true if statusCode == 200
+  Future<bool> updateAchievementProgress(int userId, int achievementIndex, int progress) async {
+    final url = Uri.parse('$baseUrl/api/achievements/$userId/$achievementIndex/progress');
 
-  // Clamp to valid range to avoid accidental invalid calls from UI
-  final int safeProgress = progress.clamp(0, 100);
+    final int safeProgress = progress.clamp(0, 100);
 
-  try {
-    final response = await http.put(
-      url,
-      headers: _jsonHeaders,
-      body: json.encode({"progress": safeProgress}),
-    );
+    try {
+      final response = await http.put(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({"progress": safeProgress}),
+      );
 
-    print("Update achievement RAW: ${response.body}");
-    return response.statusCode == 200;
-  } catch (e) {
-    print("Update achievement error: $e");
-    return false;
+      print("Update achievement progress RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update achievement progress error: $e");
+      return false;
+    }
   }
-}
+
+  // --------------------------------------------------
+  // UPDATE claimed (0/1)
+  //
+  // Backend:
+  //   PUT /api/achievements/:userId/:index/claimed
+  // Body:
+  //   { "claimed": 0 or 1 }
+  //
+  // Returns: true if statusCode == 200
+  Future<bool> updateAchievementClaimed(int userId, int achievementIndex, int claimed) async {
+    final url = Uri.parse('$baseUrl/api/achievements/$userId/$achievementIndex/claimed');
+
+    // claimed have to be 0 or 1 only
+    final int safeClaimed = claimed == 1 ? 1 : 0;
+
+    try {
+      final response = await http.put(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({"claimed": safeClaimed}),
+      );
+
+      print("Update achievement claimed RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update achievement claimed error: $e");
+      return false;
+    }
+  }
+
+  // --------------------------------------------------
+  // UPDATE tier (int >= 0)
+  //
+  // Backend:
+  //   PUT /api/achievements/:userId/:index/tier
+  // Body:
+  //   { "tier": int >= 0 }
+  //
+  // Returns: true if statusCode == 200
+  Future<bool> updateAchievementTier(int userId, int achievementIndex, int tier) async {
+    final url = Uri.parse('$baseUrl/api/achievements/$userId/$achievementIndex/tier');
+
+    // tier must not be negative
+    final int safeTier = tier < 0 ? 0 : tier;
+
+    try {
+      final response = await http.put(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({"tier": safeTier}),
+      );
+
+      print("Update achievement tier RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update achievement tier error: $e");
+      return false;
+    }
+  }
+
 
   //
   // GET FULL ROOM STATUS
