@@ -110,6 +110,7 @@ async function getAchievements(userId) {
   return res.data;
 }
 
+// old helper (keep) ?
 async function updateAchievementProgress(userId, index, progress) {
   const res = await axios.put(
     `${API_BASE_URL}/api/achievements/${userId}/${index}`,
@@ -118,6 +119,17 @@ async function updateAchievementProgress(userId, index, progress) {
   );
   return res.data;
 }
+
+// helper (minimal addition) -> supports claimed/tier
+async function updateAchievement(userId, index, body) {
+  const res = await axios.put(
+    `${API_BASE_URL}/api/achievements/${userId}/${index}`,
+    body,
+    { headers: JSON_HEADERS }
+  );
+  return res.data;
+}
+
 
 // ------------------------------------------------------------
 // Coin helpers
@@ -266,9 +278,8 @@ async function testAPI() {
     T.summary();
     return;
   }
-
   // -----------------------------
-  // Achievements flow
+  // Achievements flow (progress)
   // -----------------------------
   await T.test('ACHIEVEMENTS: set 1=55, 2=100; invalid progress rejected', async () => {
     const before = await getAchievements(testUserId);
@@ -297,6 +308,34 @@ async function testAPI() {
       T.expect(e?.response?.status === 400, 'invalid progress should return 400');
     }
     T.expect(rejected, 'invalid progress should be rejected');
+  });
+
+  // -----------------------------
+  // Achievements claimed + tier flow
+  // -----------------------------
+  await T.test('ACHIEVEMENTS: claimed/tier update + verify', async () => {
+    // Set on index 1 (keep progress valid)
+    await updateAchievement(testUserId, 1, { progress: 55, claimed: true, tier: 2 });
+
+    const after = await getAchievements(testUserId);
+    const list = after?.achievements || [];
+    const a1 = list.find((x) => x.achievement_index === 1);
+
+    T.expect(a1, 'achievement index 1 should exist');
+
+    // claimed might come back as 0/1 (number) from MySQL
+    T.expect(a1.claimed === 1 || a1.claimed === true || a1.claimed === '1', 'claimed should be true/1');
+    T.eq(a1.tier, 2, 'tier should be 2');
+
+    // Negative: tier < 0 should reject (400)
+    let tierRejected = false;
+    try {
+      await updateAchievement(testUserId, 1, { progress: 55, tier: -1 });
+    } catch (e) {
+      tierRejected = true;
+      T.eq(e?.response?.status, 400, 'invalid tier should return 400');
+    }
+    T.expect(tierRejected, 'invalid tier should be rejected');
   });
 
   // -----------------------------
