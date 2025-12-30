@@ -614,4 +614,74 @@ Future<bool> updateAchievementProgress(int userId, int achievementIndex, int pro
     }
   }
 
+
+  //
+  // COINS
+  //
+
+  // GET user coin amount
+  //
+  // Backend:
+  //   GET /api/coins/:userId
+  //
+  // Expected response:
+  //   { "success": true, "coins": 123 }
+  //
+  // Returns:
+  //   int coin count, or null if anything fails
+  Future<int?> getUserCoin(int userId) async {
+    final url = Uri.parse('$baseUrl/api/coins/$userId');
+
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+      print("🪙 Get coins RAW: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final value = data["coins"];
+        if (value is num) return value.toInt();
+        return int.tryParse(value.toString());
+      }
+    } catch (e) {
+      print("❌ Get user coin error: $e");
+    }
+
+    return null;
+  }
+
+
+  // UPDATE user coin amount
+  //
+  // Backend:
+  //   PUT /api/coins/:userId
+  // Body:
+  //   { "coins": newValue }
+  //
+  // Returns:
+  //   true if successful
+  Future<bool> updateUserCoin(int userId, int newCoinValue) async {
+    final url = Uri.parse('$baseUrl/api/coins/$userId');
+
+    // Prevent negative coins unless backend allows it later
+    final safeValue = newCoinValue < 0 ? 0 : newCoinValue;
+
+    try {
+      final response = await http.put(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({"coins": safeValue}),
+      );
+
+      print("🪙 Update coins RAW: ${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      print("❌ Update user coin error: $e");
+      return false;
+    }
+  }
+
+
+
 }
+
+
