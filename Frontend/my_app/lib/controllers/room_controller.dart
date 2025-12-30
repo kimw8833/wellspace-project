@@ -95,6 +95,9 @@ class RoomController extends ChangeNotifier {
 
   static const int explorerAchievementIndex = 1;
 
+  final Map <int,int> _achievementTier = {1: 0, 2: 0, 3: 0};
+
+  int achievementTier(int index) => _achievementTier[index] ?? 0;
   /// These are the only events that should count toward “Welcome Home”.
   /// (You can add more later, but keep it explicit.)
   static const List<String> explorerRequiredEvents = [
@@ -205,6 +208,13 @@ class RoomController extends ChangeNotifier {
       return int.tryParse(v?.toString() ?? '');
     }
 
+    bool toBool(dynamic v) {
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      final s = (v?.toString() ?? '').toLowerCase();
+      return s == 'true' || s == '1' || s == 'yes';
+    }
+
     for (final a in list) {
       final index = toInt(a['achievement_index']);
       final progress = toInt(a['progress']);
@@ -212,11 +222,27 @@ class RoomController extends ChangeNotifier {
       if (index == null || progress == null) continue;
       if (!_achievementProgress.containsKey(index)) continue;
 
-      _achievementProgress[index] = progress.clamp(0, 100);
+      // ✅ Progress should never go down based on a recompute later
+      final current = _achievementProgress[index] ?? 0;
+      final p = progress.clamp(0, 100);
+      _achievementProgress[index] = max(current, p);
+
+      // ✅ Tier (default 0 if missing)
+      final tier = toInt(a['tier']) ?? 0;
+      _achievementTier[index] = max(0, tier);
+
+      // ✅ Claimed (default false if missing)
+      final claimed = toBool(a['claimed']);
+      if (claimed) {
+        _claimedAchievements.add(index);
+      } else {
+        _claimedAchievements.remove(index);
+      }
     }
 
     notifyListeners();
   }
+
 
 
   // ===================================================
@@ -235,36 +261,38 @@ class RoomController extends ChangeNotifier {
 
     _claimedAchievements.add(index);
 
+    // ✅ Persist claimed immediately
+    unawaited(_api.updateAchievementClaimed(userId, index, 1));
+
     final def = achievementDefinitions[index];
     if (def != null && def.rewardCoins > 0) {
       coins += def.rewardCoins;
-
       unawaited(_api.updateUserCoin(userId, coins));
-
     }
 
     notifyListeners();
   }
+
 
   void resetAllAchievements() {
-    // Reset progress for all achievement indices
     for (final index in _achievementProgress.keys) {
       _achievementProgress[index] = 0;
+      _achievementTier[index] = 0;
     }
 
-    // Clear claimed achievements
     _claimedAchievements.clear();
-
-    // Reset explorer achievement state
     _explorerEventsSeen.clear();
 
-    // IMPORTANT:
-    // - Do NOT touch coins
-    // - Do NOT sync to backend
-    // This is debug-only, local reset
+    // ✅ Sync reset to backend (testing)
+    for (final index in _achievementProgress.keys) {
+      unawaited(_api.updateAchievementProgress(userId, index, 0));
+      unawaited(_api.updateAchievementClaimed(userId, index, 0));
+      unawaited(_api.updateAchievementTier(userId, index, 0));
+    }
 
     notifyListeners();
   }
+
 
 
 
@@ -303,7 +331,7 @@ class RoomController extends ChangeNotifier {
       return;
     }
 
-    _achievementProgress[index] = clamped;
+    _achievementProgress[index] = effective;
     // Persist progress via your existing backend method
     _api.updateAchievementProgress(userId, index, clamped);
     notifyListeners();
