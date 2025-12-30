@@ -197,16 +197,27 @@ class RoomController extends ChangeNotifier {
   }
 
   Future<void> _loadAchievementsFromBackend() async {
-    // ApiService returns List<Map<String, dynamic>>
     final list = await _api.getAchievements(userId);
-    for (final a in list) {
-      final index = a['achievement_index'];
-      final progress = a['progress'];
-      if (index is int && progress is int && _achievementProgress.containsKey(index)) {
-        _achievementProgress[index] = progress.clamp(0, 100);
-      }
+
+    int? toInt(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '');
     }
+
+    for (final a in list) {
+      final index = toInt(a['achievement_index']);
+      final progress = toInt(a['progress']);
+
+      if (index == null || progress == null) continue;
+      if (!_achievementProgress.containsKey(index)) continue;
+
+      _achievementProgress[index] = progress.clamp(0, 100);
+    }
+
+    notifyListeners();
   }
+
 
   // ===================================================
   //                ACHIEVEMENT PUBLIC API
