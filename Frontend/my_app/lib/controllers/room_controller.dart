@@ -227,6 +227,28 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void resetAllAchievements() {
+    // Reset progress for all achievement indices
+    for (final index in _achievementProgress.keys) {
+      _achievementProgress[index] = 0;
+    }
+
+    // Clear claimed achievements
+    _claimedAchievements.clear();
+
+    // Reset explorer achievement state
+    _explorerEventsSeen.clear();
+
+    // IMPORTANT:
+    // - Do NOT touch coins
+    // - Do NOT sync to backend
+    // This is debug-only, local reset
+
+    notifyListeners();
+  }
+
+
+
 
   // ===================================================
   //                ACHIEVEMENT 1: EXPLORER

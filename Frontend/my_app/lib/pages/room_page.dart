@@ -296,6 +296,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   onPause: () => controller.pauseAutoSim(),
                   onScenarioChanged: (s) => controller.setScenario(s),
                   onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
+                  onResetAchievements: () => controller.resetAllAchievements(),
                 ),
               ),
             ),

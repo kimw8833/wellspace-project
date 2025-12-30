@@ -19,7 +19,6 @@ class DebugPanel extends StatelessWidget {
   final double hydrationSmoothed;
   final String plantHealthLabel;
 
-  // NEW: scenario state
   final String currentScenario;
 
   // Controller callbacks
@@ -30,6 +29,7 @@ class DebugPanel extends StatelessWidget {
   final VoidCallback onPlay1x;
   final VoidCallback onPlay10x;
   final VoidCallback onPause;
+  final VoidCallback onResetAchievements;
   final Function(String) onScenarioChanged;
   final Function(double) onDogStepsChanged;
 
@@ -59,6 +59,7 @@ class DebugPanel extends StatelessWidget {
     required this.onPlay1x,
     required this.onPlay10x,
     required this.onPause,
+    required this.onResetAchievements,
     required this.onScenarioChanged,
     required this.onDogStepsChanged,
 
@@ -69,7 +70,7 @@ class DebugPanel extends StatelessWidget {
   String _formatTime(DateTime d) {
     String two(int n) => n.toString().padLeft(2, '0');
     return "${d.year}-${two(d.month)}-${two(d.day)}  "
-           "${two(d.hour)}:${two(d.minute)}:${two(d.second)}";
+        "${two(d.hour)}:${two(d.minute)}:${two(d.second)}";
   }
 
   @override
@@ -264,6 +265,28 @@ class DebugPanel extends StatelessWidget {
                           color: Colors.white70,
                           fontSize: 12,
                         ),
+                      ),
+
+                      const SizedBox(height: 14),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 12),
+
+                      // ACHIEVEMENTS DEBUG
+                      const Text(
+                        "Achievements Debug",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      FancyDebugButton(
+                        label: "Reset Achievements",
+                        onPressed: onResetAchievements,
                       ),
                     ],
                   ),

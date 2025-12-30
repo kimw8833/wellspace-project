@@ -630,24 +630,28 @@ Future<bool> updateAchievementProgress(int userId, int achievementIndex, int pro
   // Returns:
   //   int coin count, or null if anything fails
   Future<int?> getUserCoin(int userId) async {
-    final url = Uri.parse('$baseUrl/api/coins/$userId');
+    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
 
     try {
       final response = await http.get(url, headers: _getHeaders);
-      print("🪙 Get coins RAW: ${response.body}");
+      print("🪙 GET coin RAW: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final value = data["coins"];
-        if (value is num) return value.toInt();
-        return int.tryParse(value.toString());
+
+        if (data["ok"] == true) {
+          final value = data["coin"];
+          if (value is num) return value.toInt();
+          return int.tryParse(value.toString());
+        }
       }
     } catch (e) {
-      print("❌ Get user coin error: $e");
+      print("❌ getUserCoin error: $e");
     }
 
     return null;
   }
+
 
 
   // UPDATE user coin amount
@@ -660,25 +664,30 @@ Future<bool> updateAchievementProgress(int userId, int achievementIndex, int pro
   // Returns:
   //   true if successful
   Future<bool> updateUserCoin(int userId, int newCoinValue) async {
-    final url = Uri.parse('$baseUrl/api/coins/$userId');
-
-    // Prevent negative coins unless backend allows it later
-    final safeValue = newCoinValue < 0 ? 0 : newCoinValue;
+    final url = Uri.parse('$baseUrl/api/users/$userId/coin');
 
     try {
       final response = await http.put(
         url,
         headers: _jsonHeaders,
-        body: json.encode({"coins": safeValue}),
+        body: json.encode({
+          "coin": newCoinValue,
+        }),
       );
 
-      print("🪙 Update coins RAW: ${response.body}");
-      return response.statusCode == 200;
+      print("🪙 UPDATE coin RAW: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data["ok"] == true;
+      }
     } catch (e) {
-      print("❌ Update user coin error: $e");
-      return false;
+      print("❌ updateUserCoin error: $e");
     }
+
+    return false;
   }
+
 
 
 
