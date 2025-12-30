@@ -296,7 +296,9 @@ class RoomController extends ChangeNotifier {
     final current = _achievementProgress[index] ?? 0;
     final clamped = nextProgress.clamp(0, 100);
 
-    if (clamped == current) {
+    final effective = max(current,clamped);
+
+    if (effective == current) {
       notifyListeners();
       return;
     }
