@@ -132,7 +132,9 @@ CREATE TABLE user_achievements (
     user_id INT NOT NULL,
     achievement_index INT NOT NULL,        -- 1,2,3,... (frontend maps meaning)
     progress TINYINT UNSIGNED NOT NULL DEFAULT 0,  -- 0..100
-
+    claimed TINYINT(1) NOT NULL DEFAULT 0, -- 0=false, 1=true
+    tier INT NOT NULL DEFAULT 0,
+    
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
