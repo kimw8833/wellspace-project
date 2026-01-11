@@ -111,6 +111,32 @@ class RoomController extends ChangeNotifier {
     'open_settings',
   ];
 
+  bool get hasClaimableAchievements {
+    for (final def in achievementDefinitions.values) {
+      if (def.title.trim() == '—') continue;
+
+      // Tiered achievements
+      if (def.isTiered) {
+        final progress = achievementProgress(def.index);
+        final target = _tierTarget(def.index);
+
+        if (progress >= target) return true;
+      }
+
+      // Single achievements
+      else {
+        if (isAchievementCompleted(def.index) &&
+            !isAchievementClaimed(def.index)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+
+
+
   // ===================================================
   //          REAL-DAY ROLLOVER TRACKING (NON-DEBUG)
   // ===================================================

@@ -402,6 +402,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     scale: 1.8,
                     child: TrophySprite(
                       onTap: _openAchievementsDialog,
+                      glow: controller.hasClaimableAchievements,
                     ),
                   ),
                 ),
