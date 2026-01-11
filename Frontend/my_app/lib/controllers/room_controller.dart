@@ -111,6 +111,15 @@ class RoomController extends ChangeNotifier {
     'open_settings',
   ];
 
+  // ===================================================
+  //          REAL-DAY ROLLOVER TRACKING (NON-DEBUG)
+  // ===================================================
+  DateTime _lastRealDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+
   RoomController(this.userId, {this.readOnly = false}) {
     plant = PlantModel();
     time = TimeSimulation();
@@ -192,6 +201,13 @@ class RoomController extends ChangeNotifier {
     await _loadAchievementsFromBackend();
     isLoading = false;
 
+    // Reset real-day anchor after backend load (prevents false rollover)
+    _lastRealDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+
     _startRealTimeTicker();
     notifyListeners();
   }
@@ -208,6 +224,15 @@ class RoomController extends ChangeNotifier {
         // Only tick UI on real time when not in debug sim and not autosimming.
         // (Autosim already notifies on each sim tick.)
         if (!debugSimActive && !time.autoSimRunning) {
+          // ✅ Detect real midnight rollover for streak-type achievements.
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+
+          if (today != _lastRealDate) {
+            _handleNewDayBoundaryReal(today);
+            _lastRealDate = today;
+          }
+
           notifyListeners();
         }
       },
@@ -217,6 +242,24 @@ class RoomController extends ChangeNotifier {
   void _stopRealTimeTicker() {
     _realTimeTimer?.cancel();
     _realTimeTimer = null;
+  }
+
+  void _handleNewDayBoundaryReal(DateTime today) {
+    // Process "yesterday" outcome using the counters currently in memory.
+    final didMeetWaterGoal = waterToday >= dailyWaterGoal;
+
+    // Tiered streak achievements can hook into this.
+    _applyTieredStreakDayResult(
+      achievementIndex: 2, // Hydration Habit (tiered)
+      didMeetGoal: didMeetWaterGoal,
+    );
+
+    // Reset daily counters for the new day (real time).
+    waterToday = 0;
+
+    // Reset dog for a new real day to keep day math sane.
+    final start = DateTime(today.year, today.month, today.day, 0, 0);
+    dog.resetForNewDay(start);
   }
 
   // ===================================================
@@ -275,10 +318,18 @@ class RoomController extends ChangeNotifier {
       if (index == null || progress == null) continue;
       if (!_achievementProgress.containsKey(index)) continue;
 
-      // ✅ Progress should never go down based on a recompute later
-      final current = _achievementProgress[index] ?? 0;
+      final def = achievementDefinitions[index];
+
+      // ✅ Progress rules:
+      // - Non-tiered (Explorer): never downgrade (max)
+      // - Tiered (streak-like): allow downgrade (set)
       final p = progress.clamp(0, 100);
-      _achievementProgress[index] = max(current, p);
+      if (def != null && def.isTiered) {
+        _achievementProgress[index] = p;
+      } else {
+        final current = _achievementProgress[index] ?? 0;
+        _achievementProgress[index] = max(current, p);
+      }
 
       // ✅ Tier (default 0 if missing)
       final tier = toInt(a['tier']) ?? 0;
@@ -297,18 +348,106 @@ class RoomController extends ChangeNotifier {
   }
 
   // ===================================================
+  //                TIERED ACHIEVEMENT HELPERS
+  // ===================================================
+
+  bool _isTiered(int index) {
+    final def = achievementDefinitions[index];
+    return def != null && def.isTiered;
+  }
+
+  int _tierTarget(int index) {
+    final def = achievementDefinitions[index];
+    final tiers = def?.tiers;
+    if (tiers == null || tiers.isEmpty) return 100;
+
+    final tier = (_achievementTier[index] ?? 0).clamp(0, tiers.length - 1);
+    return tiers[tier].target.clamp(0, 100);
+  }
+
+  int _tierRewardCoins(int index) {
+    final def = achievementDefinitions[index];
+    final tiers = def?.tiers;
+    if (tiers == null || tiers.isEmpty) return 0;
+
+    final tier = (_achievementTier[index] ?? 0).clamp(0, tiers.length - 1);
+    return max(0, tiers[tier].rewardCoins);
+  }
+
+  void _advanceTierAndResetProgress(int index) {
+    final def = achievementDefinitions[index];
+    final tiers = def?.tiers;
+    if (tiers == null || tiers.isEmpty) return;
+
+    final currentTier = _achievementTier[index] ?? 0;
+    final nextTier = min(currentTier + 1, tiers.length - 1);
+
+    _achievementTier[index] = nextTier;
+    _achievementProgress[index] = 0;
+
+    // Persist tier/progress/claimed for tiered achievements.
+    unawaited(_api.updateAchievementTier(userId, index, nextTier));
+    unawaited(_api.updateAchievementProgress(userId, index, 0));
+    unawaited(_api.updateAchievementClaimed(userId, index, 0));
+  }
+
+  void _applyTieredStreakDayResult({
+    required int achievementIndex,
+    required bool didMeetGoal,
+  }) {
+    if (!_canWrite) return;
+    if (!_isTiered(achievementIndex)) return;
+
+    // Only hydration is wired right now; later you can call this for steps too.
+    final current = _achievementProgress[achievementIndex] ?? 0;
+    final target = _tierTarget(achievementIndex);
+
+    // If already at/over target, keep it stable (so user can claim).
+    if (current >= target) return;
+
+    final next = didMeetGoal ? (current + 1) : 0;
+    final safe = next.clamp(0, 100);
+
+    _achievementProgress[achievementIndex] = safe;
+    unawaited(_api.updateAchievementProgress(userId, achievementIndex, safe));
+
+    notifyListeners();
+  }
+
+  // ===================================================
   //                ACHIEVEMENT PUBLIC API
   // ===================================================
 
   int achievementProgress(int index) => _achievementProgress[index] ?? 0;
 
-  bool isAchievementCompleted(int index) => achievementProgress(index) >= 100;
+  bool isAchievementCompleted(int index) {
+    if (_isTiered(index)) {
+      return achievementProgress(index) >= _tierTarget(index);
+    }
+    return achievementProgress(index) >= 100;
+  }
 
   bool isAchievementClaimed(int index) => _claimedAchievements.contains(index);
 
   void claimAchievement(int index) {
     if (!_canWrite) return;
     if (!isAchievementCompleted(index)) return;
+
+    // ✅ Tiered achievements: claim current tier, award coins, advance tier, reset progress.
+    if (_isTiered(index)) {
+      final reward = _tierRewardCoins(index);
+      if (reward > 0) {
+        coins += reward;
+        unawaited(_api.updateUserCoin(userId, coins));
+      }
+
+      _advanceTierAndResetProgress(index);
+
+      notifyListeners();
+      return;
+    }
+
+    // ✅ Non-tiered achievements (Explorer) behavior unchanged
     if (isAchievementClaimed(index)) return;
 
     _claimedAchievements.add(index);
@@ -334,6 +473,13 @@ class RoomController extends ChangeNotifier {
 
     _claimedAchievements.clear();
     _explorerEventsSeen.clear();
+
+    // Reset real-day anchor so we don't accidentally process a rollover immediately.
+    _lastRealDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
 
     // ✅ Sync reset to backend (testing)
     for (final index in _achievementProgress.keys) {
@@ -443,6 +589,13 @@ class RoomController extends ChangeNotifier {
     dog.runTicks(prev, time.simulatedTime);
 
     if (time.isNewDay()) {
+      // ✅ Streak achievements should evaluate before counters reset.
+      final didMeetWaterGoal = waterToday >= dailyWaterGoal;
+      _applyTieredStreakDayResult(
+        achievementIndex: 2,
+        didMeetGoal: didMeetWaterGoal,
+      );
+
       applyDailyUpdate();
       _resetDogForNewDay();
       time.updateCurrentDate();
@@ -460,6 +613,13 @@ class RoomController extends ChangeNotifier {
 
     if (days > 0) {
       for (int i = 0; i < days; i++) {
+        // ✅ Each simulated day boundary processes the day result.
+        final didMeetWaterGoal = waterToday >= dailyWaterGoal;
+        _applyTieredStreakDayResult(
+          achievementIndex: 2,
+          didMeetGoal: didMeetWaterGoal,
+        );
+
         applyDailyUpdate();
         _resetDogForNewDay();
         time.addDays(1);
@@ -530,6 +690,13 @@ class RoomController extends ChangeNotifier {
     dog.runTicks(prev, now);
 
     if (time.isNewDay()) {
+      // ✅ Streak achievements should evaluate before counters reset.
+      final didMeetWaterGoal = waterToday >= dailyWaterGoal;
+      _applyTieredStreakDayResult(
+        achievementIndex: 2,
+        didMeetGoal: didMeetWaterGoal,
+      );
+
       _applyDailyUpdateFromScenario();
       _resetDogForNewDay();
       time.updateCurrentDate();
