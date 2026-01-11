@@ -13,7 +13,8 @@ class FriendsDialog extends StatefulWidget {
   State<FriendsDialog> createState() => _FriendsDialogState();
 }
 
-class _FriendsDialogState extends State<FriendsDialog> {
+class _FriendsDialogState extends State<FriendsDialog>
+    with SingleTickerProviderStateMixin {
   final ApiService api = ApiService();
 
   FriendsTab currentTab = FriendsTab.friends;
@@ -24,10 +25,31 @@ class _FriendsDialogState extends State<FriendsDialog> {
   final TextEditingController addFriendCtrl = TextEditingController();
   bool isSending = false;
 
+  // ✅ Frontend-only feedback (no backend changes needed)
+  String? _sendStatus;
+  bool _sendOk = false;
+
+  // 🔹 Animation
+  late final AnimationController _animCtrl;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
+
   @override
   void initState() {
     super.initState();
     _refreshAll();
+
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    )..forward();
+
+    _fade = CurvedAnimation(
+      parent: _animCtrl,
+      curve: Curves.easeOutCubic,
+    );
+
+    _scale = Tween<double>(begin: 0.98, end: 1.0).animate(_fade);
   }
 
   void _refreshAll() {
@@ -39,44 +61,51 @@ class _FriendsDialogState extends State<FriendsDialog> {
   @override
   void dispose() {
     addFriendCtrl.dispose();
+    _animCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Material(
-        type: MaterialType.transparency,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(
-              width: 340,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Friends",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
+    return FadeTransition(
+      opacity: _fade,
+      child: ScaleTransition(
+        scale: _scale,
+        child: Center(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: Container(
+                  width: 620,
+                  padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F0E8).withOpacity(0.94),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 30,
+                        offset: const Offset(0, 18),
+                        color: Colors.black.withOpacity(0.25),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _tabBar(),
-                  const SizedBox(height: 16),
-                  SizedBox(height: 200, child: _buildTab()),
-                  const SizedBox(height: 16),
-                  _closeButton(),
-                ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _header(context),
+                      const SizedBox(height: 12),
+                      _tabs(),
+                      const SizedBox(height: 14),
+                      SizedBox(height: 220, child: _buildTab()),
+                      const SizedBox(height: 14),
+                      _footer(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -85,33 +114,98 @@ class _FriendsDialogState extends State<FriendsDialog> {
     );
   }
 
-  // TABS
-  Widget _tabBar() {
+  // HEADER
+  Widget _header(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _tabButton("Friends", FriendsTab.friends),
-        _tabButton("Requests", FriendsTab.requests),
-        _tabButton("Add", FriendsTab.add),
+        const Icon(Icons.people_alt_outlined, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Friends",
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _subtitleForTab(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.black.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.close),
+          splashRadius: 18,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ],
     );
   }
 
-  Widget _tabButton(String label, FriendsTab tab) {
-    final isActive = currentTab == tab;
+  String _subtitleForTab() {
+    switch (currentTab) {
+      case FriendsTab.friends:
+        return "People who can visit your space.";
+      case FriendsTab.requests:
+        return "Invitations waiting at your door.";
+      case FriendsTab.add:
+        return "Send an invite by username.";
+    }
+  }
 
-    return GestureDetector(
-      onTap: () => setState(() => currentTab = tab),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isActive ? Colors.white : Colors.white54,
-          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-        ),
+  // TABS
+  Widget _tabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: FriendsTab.values.map((tab) {
+          final active = currentTab == tab;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  currentTab = tab;
+                  // Clear message when leaving "Add" tab
+                  if (tab != FriendsTab.add) _sendStatus = null;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: active ? Colors.black : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  tab.name[0].toUpperCase() + tab.name.substring(1),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: active ? Colors.white : Colors.black87,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
+  // BODY
   Widget _buildTab() {
     switch (currentTab) {
       case FriendsTab.friends:
@@ -123,214 +217,254 @@ class _FriendsDialogState extends State<FriendsDialog> {
     }
   }
 
-  // FRIENDS LIST
   Widget _friendsList() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: friendsFuture,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
+      builder: (_, snap) {
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.data!.isEmpty) {
+          return _emptyState(
+            Icons.person_outline,
+            "No friends yet",
+            "Add a friend and their presence will show up here.",
           );
         }
 
-        final friends = snapshot.data!;
-        if (friends.isEmpty) {
-          return const Center(
-            child: Text(
-              "No friends yet",
-              style: TextStyle(color: Colors.white70),
-            ),
+        return ListView(
+          children: snap.data!.map((f) {
+            return _row(
+              title: (f["username"] ?? "").toString(),
+              trailing: TextButton(
+                onPressed: () async {
+                  await api.removeFriend(widget.userId, f["id"]);
+                  _refreshAll();
+                },
+                child: const Text("Remove"),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _requestsList() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: requestsFuture,
+      builder: (_, snap) {
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.data!.isEmpty) {
+          return _emptyState(
+            Icons.mark_email_read_outlined,
+            "No requests",
+            "When someone adds you, their request will appear here.",
           );
         }
 
-        return ListView.builder(
-          itemCount: friends.length,
-          itemBuilder: (context, i) {
-            final friend = friends[i];
-            final username = friend['username'];
-            final friendId = friend['id'];
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: _glassBox(),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return ListView(
+          children: snap.data!.map((r) {
+            return _row(
+              title: (r["requester_username"] ?? "").toString(),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  /// FRIEND ROW (tap prints)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        print("Tapped friend: $username");
-                      },
-                      child: Text(
-                        username,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  /// REMOVE BUTTON
-                  GestureDetector(
-                    onTap: () async {
-                      await api.removeFriend(widget.userId, friendId);
+                  TextButton(
+                    onPressed: () async {
+                      await api.acceptFriendRequest(
+                        widget.userId,
+                        r["requester_id"],
+                      );
                       _refreshAll();
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.redAccent.withOpacity(0.4),
-                        ),
-                      ),
-                      child: const Text(
-                        "Remove",
-                        style: TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
+                    child: const Text("Accept"),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      await api.rejectFriendRequest(
+                        widget.userId,
+                        r["requester_id"],
+                      );
+                      _refreshAll();
+                    },
+                    child: const Text("Reject"),
                   ),
                 ],
               ),
             );
-          },
+          }).toList(),
         );
       },
     );
   }
 
-  // FRIEND REQUESTS
-  Widget _requestsList() {
-    return FutureBuilder(
-      future: requestsFuture,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        }
-
-        final requests = snapshot.data!;
-        if (requests.isEmpty) {
-          return const Center(
-            child: Text("No requests", style: TextStyle(color: Colors.white70)),
-          );
-        }
-
-        return ListView.builder(
-          itemCount: requests.length,
-          itemBuilder: (context, i) {
-            final req = requests[i];
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: _glassBox(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    req['requester_username'],
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _actionButton("Accept", () async {
-                        await api.acceptFriendRequest(
-                          widget.userId,
-                          req['requester_id'],
-                        );
-                        _refreshAll();
-                      }),
-                      const SizedBox(width: 10),
-                      _actionButton("Reject", () async {
-                        await api.rejectFriendRequest(
-                          widget.userId,
-                          req['requester_id'],
-                        );
-                        _refreshAll();
-                      }),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ADD FRIEND
   Widget _addFriend() {
     return Column(
       children: [
-        _input(addFriendCtrl, "Username"),
-        const SizedBox(height: 14),
-        _actionButton(
-          isSending ? "Sending..." : "Send Request",
-          isSending
-              ? null
-              : () async {
-                  setState(() => isSending = true);
-                  await api.sendFriendRequest(
-                    widget.userId,
-                    addFriendCtrl.text.trim(),
-                  );
-                  addFriendCtrl.clear();
-                  setState(() => isSending = false);
-                },
+        _input(),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 40,
+          child: ElevatedButton(
+            onPressed: isSending
+                ? null
+                : () async {
+                    final username = addFriendCtrl.text.trim();
+                    if (username.isEmpty) {
+                      setState(() {
+                        _sendOk = false;
+                        _sendStatus = "Enter a username first.";
+                      });
+                      return;
+                    }
+
+                    setState(() {
+                      isSending = true;
+                      _sendStatus = null;
+                    });
+
+                    final ok =
+                        await api.sendFriendRequest(widget.userId, username);
+
+                    if (!mounted) return;
+
+                    setState(() {
+                      isSending = false;
+                      _sendOk = ok;
+                      _sendStatus = ok
+                          ? 'Invite sent to "$username".'
+                          : 'Couldn’t send invite. Double-check the username.';
+                    });
+
+                    if (ok) {
+                      addFriendCtrl.clear();
+                      _refreshAll();
+                      setState(() => currentTab = FriendsTab.requests);
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromRGBO(146, 202, 170, 1),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(isSending ? "Sending..." : "Send invite"),
+          ),
+        ),
+
+        if (_sendStatus != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            _sendStatus!,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _sendOk
+                  ? Colors.black.withOpacity(0.70)
+                  : Colors.redAccent.withOpacity(0.85),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 8),
+        Text(
+          "Tip: usernames are case-sensitive.",
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Colors.black54),
         ),
       ],
     );
   }
 
-  Widget _input(TextEditingController ctrl, String hint) {
+  Widget _input() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: _glassBox(),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      height: 42,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black.withOpacity(0.12)),
+      ),
       child: TextField(
-        controller: ctrl,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white54),
+        controller: addFriendCtrl,
+        onChanged: (_) {
+          if (_sendStatus != null) setState(() => _sendStatus = null);
+        },
+        decoration: const InputDecoration(
+          hintText: "Username",
           border: InputBorder.none,
         ),
       ),
     );
   }
 
-  Widget _actionButton(String text, VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: _glassBox(),
-        child: Text(text, style: const TextStyle(color: Colors.white)),
+  Widget _row({required String title, required Widget trailing}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          trailing,
+        ],
       ),
     );
   }
 
-  Widget _closeButton() {
-    return _actionButton("Close", () => Navigator.of(context).pop());
+  Widget _emptyState(IconData icon, String title, String subtitle) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 32, color: Colors.black45),
+        const SizedBox(height: 8),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.black54),
+        ),
+      ],
+    );
   }
 
-  BoxDecoration _glassBox() => BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
-      );
+  Widget _footer() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton.icon(
+          onPressed: _refreshAll,
+          icon: const Icon(Icons.refresh),
+          label: const Text("Refresh"),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromRGBO(146, 202, 170, 1),
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: const Text("Close"),
+        ),
+      ],
+    );
+  }
 }
