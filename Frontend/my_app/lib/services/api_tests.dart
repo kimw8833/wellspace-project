@@ -1,5 +1,5 @@
 import 'dart:async';
-import '/services/api_service.dart';
+import 'api_service.dart';
 
 String _randomUsername([String prefix = "WellspaceUser"]) {
   final ms = DateTime.now().millisecondsSinceEpoch;
@@ -341,6 +341,52 @@ Future<void> main() async {
     // remove friend (cleanup)
     final removed = await api.removeFriend(userId, tommyIdFromKimList!);
     t.expect(removed == true, 'removeFriend should succeed');
+  });
+
+  // ---------------------------------------------------------
+  // NEW) FIRST-TIME + TUTORIAL COMPLETE FLOW
+  // (create temp user -> firstTime true -> complete -> false -> complete again should fail -> delete)
+  // ---------------------------------------------------------
+  await t.test('FIRST-TIME: GET true -> POST complete -> GET false (+ POST again fails) -> DELETE', () async {
+    final tmpUsername = _randomUsername("FirstTimeTest");
+    const tmpPassword = "1234";
+
+    // register temp user
+    final reg = await api.register(tmpUsername, tmpPassword);
+    t.expect(reg["success"] == true, 'register(temp) should succeed');
+
+    final u = reg["user"];
+    t.expect(u != null, 'register(temp) should return user');
+
+    final rawId = u["id"];
+    int? tmpUserId;
+    if (rawId is int) tmpUserId = rawId;
+    if (rawId is num) tmpUserId = rawId.toInt();
+    if (rawId is String) tmpUserId = int.tryParse(rawId);
+
+    t.expect(tmpUserId != null && tmpUserId! > 0, 'temp user id should be valid');
+
+    // 1) first-time should be true
+    final first1 = await api.isFirstTimeUser(tmpUserId!);
+    t.expect(first1 != null, 'isFirstTimeUser should not return null');
+    t.expectEq(first1, true, 'newly registered user should be first-time (true)');
+
+    // 2) mark tutorial complete should succeed
+    final okComplete1 = await api.markTutorialComplete(tmpUserId);
+    t.expect(okComplete1 == true, 'markTutorialComplete should succeed for first-time user');
+
+    // 3) first-time should now be false
+    final first2 = await api.isFirstTimeUser(tmpUserId);
+    t.expect(first2 != null, 'isFirstTimeUser after complete should not return null');
+    t.expectEq(first2, false, 'after tutorial complete, isFirstTime should be false');
+
+    // 4) calling complete again should fail (backend returns 404)
+    final okComplete2 = await api.markTutorialComplete(tmpUserId);
+    t.expect(okComplete2 == false, 'markTutorialComplete again should fail (already completed)');
+
+    // cleanup delete
+    final del = await api.deleteUser(tmpUserId);
+    t.expect(del["success"] == true, 'deleteUser(temp) should succeed');
   });
 
   // ---------------------------------------------------------

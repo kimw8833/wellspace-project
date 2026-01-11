@@ -1,7 +1,7 @@
-// Backend/test_api.js
+// Backend/server_tests.js
 //
 // PASS/FAIL style API test runner (no extra packages).
-// Run: node test_api.js
+// Run: node server_tests.js
 
 const axios = require('axios');
 require('dotenv').config();
@@ -103,6 +103,23 @@ async function deleteUser(userId) {
 }
 
 // ------------------------------------------------------------
+// Tutorial / First-time helpers
+// ------------------------------------------------------------
+async function getIsFirstTime(userId) {
+  const res = await axios.get(`${API_BASE_URL}/api/users/${userId}/first-time`);
+  return res.data;
+}
+
+async function tutorialComplete(userId) {
+  const res = await axios.post(
+    `${API_BASE_URL}/api/users/${userId}/tutorial-complete`,
+    {},
+    { headers: JSON_HEADERS }
+  );
+  return res.data;
+}
+
+// ------------------------------------------------------------
 // Achievements helpers
 // ------------------------------------------------------------
 async function getAchievements(userId) {
@@ -110,26 +127,51 @@ async function getAchievements(userId) {
   return res.data;
 }
 
-// old helper (keep) ?
 async function updateAchievementProgress(userId, index, progress) {
   const res = await axios.put(
-    `${API_BASE_URL}/api/achievements/${userId}/${index}`,
+    `${API_BASE_URL}/api/achievements/${userId}/${index}/progress`,
     { progress },
     { headers: JSON_HEADERS }
   );
   return res.data;
 }
 
-// helper (minimal addition) -> supports claimed/tier
+/**
+ * updateAchievement(userId, index, body)
+ * รองรับ body: { progress?, claimed?, tier? }
+ * แต่ backend แยก endpoint เป็น /progress, /claimed, /tier
+ * ดังนั้น helper นี้จะยิงทีละ endpoint ตาม field ที่ส่งมา
+ */
 async function updateAchievement(userId, index, body) {
-  const res = await axios.put(
-    `${API_BASE_URL}/api/achievements/${userId}/${index}`,
-    body,
-    { headers: JSON_HEADERS }
-  );
-  return res.data;
-}
+  // progress
+  if (body && body.progress !== undefined) {
+    await axios.put(
+      `${API_BASE_URL}/api/achievements/${userId}/${index}/progress`,
+      { progress: body.progress },
+      { headers: JSON_HEADERS }
+    );
+  }
 
+  // claimed
+  if (body && body.claimed !== undefined) {
+    await axios.put(
+      `${API_BASE_URL}/api/achievements/${userId}/${index}/claimed`,
+      { claimed: body.claimed },
+      { headers: JSON_HEADERS }
+    );
+  }
+
+  // tier
+  if (body && body.tier !== undefined) {
+    await axios.put(
+      `${API_BASE_URL}/api/achievements/${userId}/${index}/tier`,
+      { tier: body.tier },
+      { headers: JSON_HEADERS }
+    );
+  }
+
+  return { success: true };
+}
 
 // ------------------------------------------------------------
 // Coin helpers
@@ -278,6 +320,7 @@ async function testAPI() {
     T.summary();
     return;
   }
+
   // -----------------------------
   // Achievements flow (progress)
   // -----------------------------
@@ -520,6 +563,51 @@ async function testAPI() {
 
     // cleanup remove friend
     await removeFriend(kimId, tommyId);
+  });
+
+  // -----------------------------
+  // First-time + Tutorial complete flow
+  // -----------------------------
+  await T.test('FIRST-TIME: new user -> true; tutorial-complete -> false; repeat complete rejected; then DELETE', async () => {
+    const newUsername = makeRandomUsername('FirstTimeUser');
+    const newPassword = '1234';
+
+    // register
+    const reg = await registerUser(newUsername, newPassword);
+    T.expect(reg?.user?.id, 'register should return user.id');
+    const newUserId = reg.user.id;
+
+    // optional: login (not required for these endpoints, but matches your flow)
+    const login = await loginUser(newUsername, newPassword);
+    T.expect(login?.ok === true || login?.success === true, 'login(new user) should return ok/success');
+
+    // 1) should be first time
+    const ft1 = await getIsFirstTime(newUserId);
+    T.expect(ft1?.ok === true, 'first-time endpoint should return ok:true');
+    T.eq(ft1.isFirstTime, true, 'new user should be isFirstTime=true');
+
+    // 2) mark tutorial complete
+    const done = await tutorialComplete(newUserId);
+    T.expect(done?.ok === true, 'tutorial-complete should return ok:true');
+
+    // 3) now should be NOT first time
+    const ft2 = await getIsFirstTime(newUserId);
+    T.expect(ft2?.ok === true, 'first-time endpoint should return ok:true');
+    T.eq(ft2.isFirstTime, false, 'after complete should be isFirstTime=false');
+
+    // 4) calling tutorial-complete again should be rejected (404 in our suggested backend)
+    let repeatRejected = false;
+    try {
+      await tutorialComplete(newUserId);
+    } catch (e) {
+      repeatRejected = true;
+      T.eq(e?.response?.status, 404, 'repeat tutorial-complete should return 404');
+    }
+    T.expect(repeatRejected, 'repeat tutorial-complete should be rejected');
+
+    // cleanup
+    const del = await deleteUser(newUserId);
+    T.expect(del?.ok === true || del?.success === true, 'delete should return ok/success');
   });
 
   T.summary();

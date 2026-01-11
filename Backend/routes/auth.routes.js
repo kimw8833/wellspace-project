@@ -86,5 +86,53 @@ router.delete('/api/users/:userId', async (req, res) => {
   }
 });
 
+// GET /api/users/:userId/first-time
+router.get('/api/users/:userId/first-time', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT is_first_time FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    return res.json({
+      ok: true,
+      isFirstTime: rows[0].is_first_time === 1
+    });
+  } catch (err) {
+    console.error('DB error in GET /first-time:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
+// POST /api/users/:userId/tutorial-complete
+router.post('/api/users/:userId/tutorial-complete', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE users SET is_first_time = 0 WHERE id = ? AND is_first_time = 1',
+      [userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: 'User not found or tutorial already completed'
+      });
+    }
+
+    return res.json({ ok: true, message: 'Tutorial marked as completed' });
+  } catch (err) {
+    console.error('DB error in POST /tutorial-complete:', err);
+    return res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
 
 module.exports = router;

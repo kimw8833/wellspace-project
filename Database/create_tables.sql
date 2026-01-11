@@ -23,14 +23,16 @@ CREATE TABLE users (
     step_goal         INT NOT NULL DEFAULT 4000,       -- user’s daily step goal
     waterintake_goal  INT NOT NULL DEFAULT 2000,       -- daily water intake goal (ml)
     coin              INT NOT NULL DEFAULT 0,          -- user’s current coin balance
-    user_location     VARCHAR(20) NOT NULL DEFAULT 'inside'  -- inside/outside
+    user_location     VARCHAR(20) NOT NULL DEFAULT 'inside',  -- inside/outside
+
+    is_first_time     TINYINT(1) NOT NULL DEFAULT 1
 );
 
-INSERT INTO users (username, password, step_goal, waterintake_goal, coin, user_location) VALUES
-    ('Benjamin', '1234', 4000, 2000, 0, 'inside'),
-    ('Kim',      '1234', 4000, 2000, 0, 'inside'),
-    ('Martin',   '1234', 4000, 2000, 0, 'inside'),
-    ('Tommy',    '1234', 4000, 2000, 0, 'inside');
+INSERT INTO users (username, password, step_goal, waterintake_goal, coin, user_location, is_first_time) VALUES
+    ('Benjamin', '1234', 4000, 2000, 0, 'inside', 0),
+    ('Kim',      '1234', 4000, 2000, 0, 'inside', 0),
+    ('Martin',   '1234', 4000, 2000, 0, 'inside', 0),
+    ('Tommy',    '1234', 4000, 2000, 0, 'inside', 0);
 
 -- ---------------------------
 -- 2) Room Status table (1:1 with users → use user_id as PK)

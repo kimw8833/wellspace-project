@@ -16,6 +16,59 @@ class ApiService {
         'ngrok-skip-browser-warning': 'true',
       };
 
+  // --------------------------------------------------
+  // FIRST-TIME / TUTORIAL
+  // --------------------------------------------------
+
+  // GET /api/users/:userId/first-time
+  // Response: { ok: true, isFirstTime: true/false }
+  Future<bool?> isFirstTimeUser(int userId) async {
+    final url = Uri.parse('$baseUrl/api/users/$userId/first-time');
+
+    try {
+      final response = await http.get(url, headers: _getHeaders);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data["ok"] == true) {
+          final value = data["isFirstTime"];
+          if (value is bool) return value;
+
+          if (value is num) return value.toInt() == 1;
+          return value.toString().toLowerCase() == "true";
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // POST /api/users/:userId/tutorial-complete
+  // Response: { ok: true, message: "Tutorial marked as completed" }
+  Future<bool> markTutorialComplete(int userId) async {
+    final url = Uri.parse('$baseUrl/api/users/$userId/tutorial-complete');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: _jsonHeaders,
+        body: json.encode({}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data["ok"] == true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // // 
   // // COIN
   // // 
