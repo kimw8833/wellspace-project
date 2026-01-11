@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:my_app/services/api_service.dart';
 
+// ✅ Add this import (adjust path if your folder structure differs)
+import 'package:my_app/pages/room_page.dart';
+
 enum FriendsTab { friends, requests, add }
 
 class FriendsDialog extends StatefulWidget {
@@ -63,6 +66,46 @@ class _FriendsDialogState extends State<FriendsDialog>
     addFriendCtrl.dispose();
     _animCtrl.dispose();
     super.dispose();
+  }
+
+  void _visitFriendRoom(int friendId, String friendUsername) {
+    // Close dialog first so it doesn't sit "behind" the next page
+    Navigator.of(context).pop();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MyRoomPage(
+          userId: friendId, // ✅ room owner id
+          viewerUserId: widget.userId, // ✅ viewer id (you)
+          roomOwnerUsername: friendUsername, // ✅ banner text
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmRemove(String username) async {
+    final res = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFFF6F0E8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Remove friend?"),
+        content: Text('Remove "$username" from your friends list?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text("Remove"),
+          ),
+        ],
+      ),
+    );
+    return res ?? false;
   }
 
   @override
@@ -178,7 +221,6 @@ class _FriendsDialogState extends State<FriendsDialog>
               onTap: () {
                 setState(() {
                   currentTab = tab;
-                  // Clear message when leaving "Add" tab
                   if (tab != FriendsTab.add) _sendStatus = null;
                 });
               },
@@ -234,15 +276,22 @@ class _FriendsDialogState extends State<FriendsDialog>
 
         return ListView(
           children: snap.data!.map((f) {
-            return _row(
-              title: (f["username"] ?? "").toString(),
-              trailing: TextButton(
-                onPressed: () async {
-                  await api.removeFriend(widget.userId, f["id"]);
-                  _refreshAll();
-                },
-                child: const Text("Remove"),
-              ),
+            final friendId = f["id"];
+            final friendUsername = (f["username"] ?? "").toString();
+
+            final canUseId = friendId is int;
+
+            return _friendRow(
+              username: friendUsername,
+              onVisit: canUseId ? () => _visitFriendRoom(friendId, friendUsername) : null,
+              onRemove: canUseId
+                  ? () async {
+                      final ok = await _confirmRemove(friendUsername);
+                      if (!ok) return;
+                      await api.removeFriend(widget.userId, friendId);
+                      _refreshAll();
+                    }
+                  : null,
             );
           }).toList(),
         );
@@ -355,7 +404,6 @@ class _FriendsDialogState extends State<FriendsDialog>
             child: Text(isSending ? "Sending..." : "Send invite"),
           ),
         ),
-
         if (_sendStatus != null) ...[
           const SizedBox(height: 10),
           Text(
@@ -369,7 +417,6 @@ class _FriendsDialogState extends State<FriendsDialog>
             ),
           ),
         ],
-
         const SizedBox(height: 8),
         Text(
           "Tip: usernames are case-sensitive.",
@@ -404,6 +451,152 @@ class _FriendsDialogState extends State<FriendsDialog>
     );
   }
 
+  // --- NEW: nicer friend bar row ---
+  Widget _friendRow({
+    required String username,
+    VoidCallback? onVisit,
+    VoidCallback? onRemove,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.06)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.25),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              username,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: Color(0xFF1F1F1F),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Visit = primary pill
+          _pillButton(
+            label: "Visit",
+            icon: Icons.open_in_new_rounded,
+            onTap: onVisit,
+            filled: true,
+          ),
+          const SizedBox(width: 8),
+
+          // Remove = icon-only destructive (with confirmation outside)
+          _iconDangerButton(
+            icon: Icons.close_rounded,
+            tooltip: "Remove",
+            onTap: onRemove,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pillButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onTap,
+    bool filled = false,
+  }) {
+    final disabled = onTap == null;
+
+    final bg = filled
+        ? const Color.fromRGBO(146, 202, 170, 1)
+        : Colors.white.withOpacity(0.55);
+
+    final border = filled ? Colors.transparent : Colors.black.withOpacity(0.10);
+
+    return Opacity(
+      opacity: disabled ? 0.5 : 1.0,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: border),
+            boxShadow: filled
+                ? [
+                    BoxShadow(
+                      blurRadius: 10,
+                      offset: const Offset(0, 6),
+                      color: Colors.black.withOpacity(0.10),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: Colors.black.withOpacity(0.85)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black.withOpacity(0.85),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconDangerButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    final disabled = onTap == null;
+
+    return Opacity(
+      opacity: disabled ? 0.45 : 1.0,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: Colors.redAccent.withOpacity(0.85),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  // --- end new friend bar row ---
+
+  // Existing generic row (used for requests tab)
   Widget _row({required String title, required Widget trailing}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

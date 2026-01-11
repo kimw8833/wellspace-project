@@ -1,13 +1,3 @@
-// lib/pages/room_page.dart
-//
-// Full replacement file.
-// ✅ Fixes the ugly white loading screen: shows a room-themed loader instead of white Scaffold + spinner
-// ✅ Does NOT change any controller logic or functionality
-// ✅ Keeps all your sprites/positions/menu/debug exactly as-is
-//
-// NOTE: Uses the same background asset you already use:
-// assets/images/rooms/daylight_room.png
-
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -23,7 +13,6 @@ import '../widgets/sprites/clock_sprite.dart';
 import '../widgets/friends_dialog.dart';
 
 import '../utils/constants.dart';
-import '../utils/formatting.dart';
 import '../models/dog_model.dart';
 import '../widgets/sprites/trophy_sprite.dart';
 import '../widgets/achievements_dialog.dart';
@@ -31,7 +20,18 @@ import '../widgets/achievements_dialog.dart';
 class MyRoomPage extends StatefulWidget {
   final int userId;
 
-  const MyRoomPage({super.key, required this.userId});
+  final int? viewerUserId;
+
+  final String? roomOwnerUsername;
+
+  const MyRoomPage({
+    super.key,
+    required this.userId,
+    this.viewerUserId,
+    this.roomOwnerUsername,
+  });
+
+  bool get isVisitor => (viewerUserId ?? userId) != userId;
 
   @override
   State<MyRoomPage> createState() => _MyRoomPageState();
@@ -51,7 +51,10 @@ class _MyRoomPageState extends State<MyRoomPage> {
   @override
   void initState() {
     super.initState();
-    controller = RoomController(widget.userId);
+    controller = RoomController(
+      widget.userId,
+      readOnly: widget.isVisitor,
+    );
     controller.addListener(_onControllerUpdate);
   }
 
@@ -144,26 +147,87 @@ class _MyRoomPageState extends State<MyRoomPage> {
     );
   }
 
+  /// Visitor banner + return button (shown only when visiting).
+  Widget _visitorOverlay(BuildContext context) {
+    final name = (widget.roomOwnerUsername ?? "Friend").trim();
+    final label = name.isEmpty ? "Friend’s room" : "$name’s room";
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.75),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.black.withOpacity(0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.visibility_outlined, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2A2A2A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.75),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.black.withOpacity(0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                tooltip: "Return",
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Room-themed loading UI so you never see a white screen.
   Widget _cozyRoomLoader(BuildContext context) {
     final theme = Theme.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background
         Image.asset(
           _backgroundImageAssetPath,
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
-        // Slight blur + dim for legibility
         BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
           child: const SizedBox.expand(),
         ),
         Container(color: Colors.black.withOpacity(0.40)),
-
-        // Center card
         Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -188,7 +252,9 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Preparing your room…',
+                  widget.isVisitor
+                      ? 'Entering their room…'
+                      : 'Preparing your room…',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: Colors.black.withOpacity(0.8),
@@ -205,10 +271,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
   @override
   Widget build(BuildContext context) {
     if (controller.isLoading) {
-      // ✅ This is the only real fix needed for the ugly white spinner.
-      return Scaffold(
-        body: _cozyRoomLoader(context),
-      );
+      return Scaffold(body: _cozyRoomLoader(context));
     }
 
     final state = controller.state;
@@ -236,7 +299,6 @@ class _MyRoomPageState extends State<MyRoomPage> {
     final bottomTrophyY = 880 * (screenH / CanvasSize.height);
 
     return Scaffold(
-      // Optional: prevents any default white showing during transitions/overscroll.
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
@@ -252,130 +314,145 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // CLOCK
-          Positioned(
-            right: rightClockX,
-            bottom: bottomClockY,
-            child: Transform.scale(
-              scale: 0.95,
-              child: ClockSprite(
-                size: 130,
-                time: controller.effectiveNow,
-              ),
-            ),
-          ),
-
-          // PLANT
-          Positioned(
-            left: leftPlantX,
-            bottom: bottomPlantY,
-            child: Transform.scale(
-              scale: SpriteScale.plant,
-              child: PlantSprite(health: state.plantHealth),
-            ),
-          ),
-
-          // DOG
-          Positioned(
-            right: rightDogX,
-            bottom: bottomDogY,
-            child: Transform.scale(
-              scale: SpriteScale.dog,
-              child: DogSprite(mood: state.dogHealth),
-            ),
-          ),
-
-          // FRIEND PICTURE
-          Positioned(
-            right: rightFriendPictureX,
-            bottom: bottomFriendPictureY,
-            child: Transform.scale(
-              scale: SpriteScale.friendPicture,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _openFriendsDialog,
-                child: FriendPictureSprite(),
-              ),
-            ),
-          ),
-
-          // TROPHY (ACHIEVEMENTS)
-          Positioned(
-            right: rightTrophyX,
-            bottom: bottomTrophyY,
-            child: Transform.scale(
-              scale: 1.8,
-              child: TrophySprite(
-                onTap: _openAchievementsDialog,
-              ),
-            ),
-          ),
-
-          // MENU + DEBUG
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _coinPill(),
-                    RoomMenuButton(
-                      onSettings: _openSettingsDialog,
-                      onLogout: () => Navigator.of(context).pop(),
-                      onAchievements: _openAchievementsDialog,
-                      onFriends: _openFriendsDialog,
+          // ✅ Non-clickable visitor mode for interactive elements
+          AbsorbPointer(
+            absorbing: widget.isVisitor,
+            child: Stack(
+              children: [
+                // CLOCK
+                Positioned(
+                  right: rightClockX,
+                  bottom: bottomClockY,
+                  child: Transform.scale(
+                    scale: 0.95,
+                    child: ClockSprite(
+                      size: 130,
+                      time: controller.effectiveNow,
                     ),
-                    if (isDeveloper)
-                      IconButton(
-                        icon: Icon(
-                          _debugVisible
-                              ? Icons.bug_report
-                              : Icons.bug_report_outlined,
-                          color: Colors.white.withOpacity(0.7),
-                          size: 22,
-                        ),
-                        onPressed: () =>
-                            setState(() => _debugVisible = !_debugVisible),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
+
+                // PLANT
+                Positioned(
+                  left: leftPlantX,
+                  bottom: bottomPlantY,
+                  child: Transform.scale(
+                    scale: SpriteScale.plant,
+                    child: PlantSprite(health: state.plantHealth),
+                  ),
+                ),
+
+                // DOG
+                Positioned(
+                  right: rightDogX,
+                  bottom: bottomDogY,
+                  child: Transform.scale(
+                    scale: SpriteScale.dog,
+                    child: DogSprite(mood: state.dogHealth),
+                  ),
+                ),
+
+                // FRIEND PICTURE
+                Positioned(
+                  right: rightFriendPictureX,
+                  bottom: bottomFriendPictureY,
+                  child: Transform.scale(
+                    scale: SpriteScale.friendPicture,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _openFriendsDialog,
+                      child: FriendPictureSprite(),
+                    ),
+                  ),
+                ),
+
+                // TROPHY
+                Positioned(
+                  right: rightTrophyX,
+                  bottom: bottomTrophyY,
+                  child: Transform.scale(
+                    scale: 1.8,
+                    child: TrophySprite(
+                      onTap: _openAchievementsDialog,
+                    ),
+                  ),
+                ),
+
+   
+                if (!widget.isVisitor)
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _coinPill(),
+                            RoomMenuButton(
+                              onSettings: _openSettingsDialog,
+                              onLogout: () => Navigator.of(context).pop(),
+                              onAchievements: _openAchievementsDialog,
+                              onFriends: _openFriendsDialog,
+                            ),
+                            if (isDeveloper)
+                              IconButton(
+                                icon: Icon(
+                                  _debugVisible
+                                      ? Icons.bug_report
+                                      : Icons.bug_report_outlined,
+                                  color: Colors.white.withOpacity(0.7),
+                                  size: 22,
+                                ),
+                                onPressed: () => setState(
+                                  () => _debugVisible = !_debugVisible,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // ✅ DEBUG PANEL: only owner/dev, and not in visitor mode
+                if (_debugVisible && isDeveloper && !widget.isVisitor)
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: DebugPanel(
+                        currentScenario: controller.time.scenario,
+                        simulatedTime: controller.effectiveNow,
+                        autoSimLabel: "",
+                        stepsToday: controller.dog.stepsToday,
+                        dogStepGoal: controller.dailyStepGoal,
+                        dogMood: controller.dog.mood,
+                        dogMoodLabel: "",
+                        dogSprite: DogSprite(mood: controller.dog.mood),
+                        plantHealth: controller.plant.health,
+                        hydrationSmoothed: controller.plant.hydrationSmoothed,
+                        plantHealthLabel: "",
+                        plantColor: Colors.white,
+                        onAddDayMinus1: () => controller.addDays(-1),
+                        onAddHourMinus1: () => controller.addHours(-1),
+                        onAddHourPlus1: () => controller.addHours(1),
+                        onAddDayPlus1: () => controller.addDays(1),
+                        onPlay1x: () => controller.playAutoSim(1),
+                        onPlay10x: () => controller.playAutoSim(10),
+                        onPause: () => controller.pauseAutoSim(),
+                        onScenarioChanged: (s) => controller.setScenario(s),
+                        onDogStepsChanged: (v) =>
+                            controller.setStepsToday(v.toInt()),
+                        onResetAchievements: () =>
+                            controller.resetAllAchievements(),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
 
-          // DEBUG PANEL
-          if (_debugVisible && isDeveloper)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: DebugPanel(
-                  currentScenario: controller.time.scenario,
-                  simulatedTime: controller.effectiveNow,
-                  autoSimLabel: "",
-                  stepsToday: controller.dog.stepsToday,
-                  dogStepGoal: controller.dailyStepGoal,
-                  dogMood: controller.dog.mood,
-                  dogMoodLabel: "",
-                  dogSprite: DogSprite(mood: controller.dog.mood),
-                  plantHealth: controller.plant.health,
-                  hydrationSmoothed: controller.plant.hydrationSmoothed,
-                  plantHealthLabel: "",
-                  plantColor: Colors.white,
-                  onAddDayMinus1: () => controller.addDays(-1),
-                  onAddHourMinus1: () => controller.addHours(-1),
-                  onAddHourPlus1: () => controller.addHours(1),
-                  onAddDayPlus1: () => controller.addDays(1),
-                  onPlay1x: () => controller.playAutoSim(1),
-                  onPlay10x: () => controller.playAutoSim(10),
-                  onPause: () => controller.pauseAutoSim(),
-                  onScenarioChanged: (s) => controller.setScenario(s),
-                  onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
-                  onResetAchievements: () => controller.resetAllAchievements(),
-                ),
-              ),
-            ),
+
+          if (widget.isVisitor) _visitorOverlay(context),
         ],
       ),
     );

@@ -17,6 +17,7 @@ import 'dart:math';
 
 class RoomController extends ChangeNotifier {
   final int userId;
+  final bool readOnly;
   final ApiService _api = ApiService();
 
   // Models
@@ -72,6 +73,8 @@ class RoomController extends ChangeNotifier {
   }
 
 
+bool get _canWrite => !readOnly;
+
 
   // Loading state
   bool isLoading = true;
@@ -108,7 +111,7 @@ class RoomController extends ChangeNotifier {
   
 
 
-  RoomController(this.userId) {
+  RoomController(this.userId, {this.readOnly = false}) {
     plant = PlantModel();
     time = TimeSimulation();
 
@@ -256,6 +259,7 @@ class RoomController extends ChangeNotifier {
   bool isAchievementClaimed(int index) => _claimedAchievements.contains(index);
 
   void claimAchievement(int index) {
+    if (!_canWrite) return;
     if (!isAchievementCompleted(index)) return;
     if (isAchievementClaimed(index)) return;
 
@@ -275,6 +279,7 @@ class RoomController extends ChangeNotifier {
 
 
   void resetAllAchievements() {
+    if (!_canWrite) return;
     for (final index in _achievementProgress.keys) {
       _achievementProgress[index] = 0;
       _achievementTier[index] = 0;
@@ -304,6 +309,7 @@ class RoomController extends ChangeNotifier {
   /// Call this from UI when the user opens a feature.
   /// Only counts the FIRST time per eventKey.
   void registerExplorerEvent(String eventKey) {
+    if (!_canWrite) return;
     if (!explorerRequiredEvents.contains(eventKey)) return;
     if (_explorerEventsSeen.contains(eventKey)) return;
 
@@ -368,6 +374,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   void setStepsToday(int steps) {
+    if (!_canWrite) return;
     final clamped = steps.clamp(0, dailyStepGoal);
     dog.debugSetSteps(clamped, effectiveNow);
     notifyListeners();
@@ -378,6 +385,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   void addHours(int hours) {
+    if (!_canWrite) return;
     stopAutoSim();
 
     final prev = time.simulatedTime;
@@ -394,6 +402,7 @@ class RoomController extends ChangeNotifier {
   }
 
   void addDays(int days) {
+    if (!_canWrite) return;
     stopAutoSim();
 
     if (days > 0) {
@@ -423,6 +432,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   void playAutoSim(double speedMultiplier) {
+    if (!_canWrite) return;
     stopAutoSim();
 
     _stopRealTimeTicker();
@@ -441,6 +451,7 @@ class RoomController extends ChangeNotifier {
   }
 
   void pauseAutoSim() {
+    if (!_canWrite) return;
     stopAutoSim();
     notifyListeners();
   }
@@ -475,6 +486,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   void setScenario(String scenario) {
+    if (!_canWrite) return;
     time.scenario = scenario;
     notifyListeners();
   }
@@ -484,6 +496,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   void addWater(int ml) {
+    if (!_canWrite) return;
     waterToday += ml;
     if (waterToday < 0) waterToday = 0;
     notifyListeners();
@@ -494,6 +507,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   Future<void> updateSettings(int newSteps, int newWater) async {
+    if (!_canWrite) return;
     dailyStepGoal = newSteps;
     dailyWaterGoal = newWater;
     dog.stepGoal = newSteps;
@@ -515,6 +529,7 @@ class RoomController extends ChangeNotifier {
   // ===================================================
 
   Future<void> saveToBackend() async {
+    if (!_canWrite) return;
     await _api.updatePlantStatus(userId, plant.health);
     await _api.updateDogStatus(userId, dog.mood);
   }
