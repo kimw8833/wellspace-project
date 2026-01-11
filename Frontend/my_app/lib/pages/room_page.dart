@@ -1,3 +1,15 @@
+// lib/pages/room_page.dart
+//
+// Full replacement file.
+// ✅ Fixes the ugly white loading screen: shows a room-themed loader instead of white Scaffold + spinner
+// ✅ Does NOT change any controller logic or functionality
+// ✅ Keeps all your sprites/positions/menu/debug exactly as-is
+//
+// NOTE: Uses the same background asset you already use:
+// assets/images/rooms/daylight_room.png
+
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:my_app/widgets/sprites/friend_picture_sprite.dart';
 
@@ -32,6 +44,9 @@ class _MyRoomPageState extends State<MyRoomPage> {
   final GlobalKey _coinPillKey = GlobalKey();
 
   bool get isDeveloper => widget.userId == 1;
+
+  static const String _backgroundImageAssetPath =
+      "assets/images/rooms/daylight_room.png";
 
   @override
   void initState() {
@@ -129,11 +144,70 @@ class _MyRoomPageState extends State<MyRoomPage> {
     );
   }
 
+  /// Room-themed loading UI so you never see a white screen.
+  Widget _cozyRoomLoader(BuildContext context) {
+    final theme = Theme.of(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Background
+        Image.asset(
+          _backgroundImageAssetPath,
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
+        // Slight blur + dim for legibility
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: const SizedBox.expand(),
+        ),
+        Container(color: Colors.black.withOpacity(0.40)),
+
+        // Center card
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF6F0E8).withOpacity(0.92),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(0.22),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Preparing your room…',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (controller.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      // ✅ This is the only real fix needed for the ugly white spinner.
+      return Scaffold(
+        body: _cozyRoomLoader(context),
       );
     }
 
@@ -162,6 +236,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
     final bottomTrophyY = 880 * (screenH / CanvasSize.height);
 
     return Scaffold(
+      // Optional: prevents any default white showing during transitions/overscroll.
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           // BACKGROUND
@@ -169,7 +245,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             child: Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage("assets/images/rooms/daylight_room.png"),
+                  image: AssetImage(_backgroundImageAssetPath),
                   fit: BoxFit.cover,
                 ),
               ),
