@@ -10,15 +10,20 @@ import '../models/room_state.dart';
 import '../services/api_service.dart';
 import '../models/achievement_definitions.dart';
 
-
 import 'dart:math';
-
-
 
 class RoomController extends ChangeNotifier {
   final int userId;
   final bool readOnly;
   final ApiService _api = ApiService();
+
+  // =========================
+  // Debug simulation mode flag
+  // =========================
+  //
+  // When true: simulated time is authoritative (manual + auto sim work)
+  // When false: real time is authoritative
+  bool debugSimActive = false;
 
   // Models
   late PlantModel plant;
@@ -29,7 +34,7 @@ class RoomController extends ChangeNotifier {
   int waterToday = 0;
   int dailyWaterGoal = 2000;
   int dailyStepGoal = 10000;
-  
+
   // COINS
   int coins = 0;
   int coinsDisplay = 0;
@@ -72,9 +77,7 @@ class RoomController extends ChangeNotifier {
     });
   }
 
-
-bool get _canWrite => !readOnly;
-
+  bool get _canWrite => !readOnly;
 
   // Loading state
   bool isLoading = true;
@@ -98,18 +101,15 @@ bool get _canWrite => !readOnly;
 
   static const int explorerAchievementIndex = 1;
 
-  final Map <int,int> _achievementTier = {1: 0, 2: 0, 3: 0};
+  final Map<int, int> _achievementTier = {1: 0, 2: 0, 3: 0};
 
   int achievementTier(int index) => _achievementTier[index] ?? 0;
-  /// These are the only events that should count toward “Welcome Home”.
-  /// (You can add more later, but keep it explicit.)
+
   static const List<String> explorerRequiredEvents = [
     'open_achievements',
     'open_friends',
     'open_settings',
   ];
-  
-
 
   RoomController(this.userId, {this.readOnly = false}) {
     plant = PlantModel();
@@ -132,8 +132,55 @@ bool get _canWrite => !readOnly;
   //                EFFECTIVE TIME SOURCE
   // ===================================================
 
+  /// In normal mode -> real time
+  /// In debug sim mode -> simulated time
   DateTime get effectiveNow {
-    return time.autoSimRunning ? time.simulatedTime : DateTime.now();
+    return debugSimActive ? time.simulatedTime : DateTime.now();
+  }
+
+  // ===================================================
+  //                DEBUG SIM LIFECYCLE
+  // ===================================================
+
+  /// Turn on debug sim time authority (does not persist anything by itself).
+  void enterDebugSim() {
+    if (!_canWrite) return;
+
+    debugSimActive = true;
+
+    // Anchor the sim clock to now on entry (nice default)
+    time.simulatedTime = DateTime.now();
+    time.updateCurrentDate();
+
+    notifyListeners();
+  }
+
+  /// Turn off debug sim time authority and return to real time.
+  void exitDebugSim({bool resetTimeToNow = true}) {
+    stopAutoSim(); // also restarts real ticker
+    debugSimActive = false;
+
+    if (resetTimeToNow) {
+      time.simulatedTime = DateTime.now();
+      time.updateCurrentDate();
+    }
+
+    notifyListeners();
+  }
+
+  /// Explicitly persist current debug-tuned plant & dog state.
+  /// Achievements are intentionally not touched here.
+  Future<void> commitDebugState() async {
+    if (!_canWrite) return;
+
+    await _api.updatePlantStatus(userId, plant.health);
+    await _api.updateDogStatus(userId, dog.mood);
+
+    // Optional: you could persist coins/steps/etc here later if desired.
+    // For now, strictly plant + dog as agreed.
+
+    // Exit debug sim after committing so the system snaps back to "truth".
+    exitDebugSim(resetTimeToNow: true);
   }
 
   // ===================================================
@@ -158,7 +205,9 @@ bool get _canWrite => !readOnly;
     _realTimeTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) {
-        if (!time.autoSimRunning) {
+        // Only tick UI on real time when not in debug sim and not autosimming.
+        // (Autosim already notifies on each sim tick.)
+        if (!debugSimActive && !time.autoSimRunning) {
           notifyListeners();
         }
       },
@@ -197,8 +246,9 @@ bool get _canWrite => !readOnly;
     }
 
     final coinsFromDb = await _api.getUserCoin(userId);
-    if(coinsFromDb != null) {
+    if (coinsFromDb != null) {
       coins = coinsFromDb;
+      coinsDisplay = coinsFromDb;
     }
   }
 
@@ -246,8 +296,6 @@ bool get _canWrite => !readOnly;
     notifyListeners();
   }
 
-
-
   // ===================================================
   //                ACHIEVEMENT PUBLIC API
   // ===================================================
@@ -277,7 +325,6 @@ bool get _canWrite => !readOnly;
     notifyListeners();
   }
 
-
   void resetAllAchievements() {
     if (!_canWrite) return;
     for (final index in _achievementProgress.keys) {
@@ -298,16 +345,10 @@ bool get _canWrite => !readOnly;
     notifyListeners();
   }
 
-
-
-
-
   // ===================================================
   //                ACHIEVEMENT 1: EXPLORER
   // ===================================================
 
-  /// Call this from UI when the user opens a feature.
-  /// Only counts the FIRST time per eventKey.
   void registerExplorerEvent(String eventKey) {
     if (!_canWrite) return;
     if (!explorerRequiredEvents.contains(eventKey)) return;
@@ -321,7 +362,6 @@ bool get _canWrite => !readOnly;
     final required = explorerRequiredEvents.length;
     final seen = _explorerEventsSeen.length.clamp(0, required);
 
-    // Deterministic progress: 0..100
     final nextProgress = ((seen * 100) / required).round().clamp(0, 100);
     _setAchievementProgressAndSync(explorerAchievementIndex, nextProgress);
   }
@@ -330,7 +370,7 @@ bool get _canWrite => !readOnly;
     final current = _achievementProgress[index] ?? 0;
     final clamped = nextProgress.clamp(0, 100);
 
-    final effective = max(current,clamped);
+    final effective = max(current, clamped);
 
     if (effective == current) {
       notifyListeners();
@@ -338,8 +378,10 @@ bool get _canWrite => !readOnly;
     }
 
     _achievementProgress[index] = effective;
-    // Persist progress via your existing backend method
+
+    // Keep achievements behavior as-is (we are not changing achievements now)
     _api.updateAchievementProgress(userId, index, clamped);
+
     notifyListeners();
   }
 
@@ -375,8 +417,12 @@ bool get _canWrite => !readOnly;
 
   void setStepsToday(int steps) {
     if (!_canWrite) return;
+
+    // When debugging, we want the dog to use the simulated clock.
+    // When not debugging, it uses real time.
     final clamped = steps.clamp(0, dailyStepGoal);
     dog.debugSetSteps(clamped, effectiveNow);
+
     notifyListeners();
   }
 
@@ -386,6 +432,10 @@ bool get _canWrite => !readOnly;
 
   void addHours(int hours) {
     if (!_canWrite) return;
+
+    // Manual time travel should always operate in debug sim authority.
+    if (!debugSimActive) enterDebugSim();
+
     stopAutoSim();
 
     final prev = time.simulatedTime;
@@ -403,6 +453,9 @@ bool get _canWrite => !readOnly;
 
   void addDays(int days) {
     if (!_canWrite) return;
+
+    if (!debugSimActive) enterDebugSim();
+
     stopAutoSim();
 
     if (days > 0) {
@@ -433,12 +486,16 @@ bool get _canWrite => !readOnly;
 
   void playAutoSim(double speedMultiplier) {
     if (!_canWrite) return;
+
+    // Autosim is a debug simulation feature — use simulated time authority.
+    if (!debugSimActive) enterDebugSim();
+
     stopAutoSim();
 
     _stopRealTimeTicker();
 
-    time.simulatedTime = DateTime.now();
-    time.updateCurrentDate();
+    // IMPORTANT: Do NOT reset simulatedTime to DateTime.now() here.
+    // That was the source of the "pause snaps back / resets" feeling.
     time.autoSimRunning = true;
     time.speedMultiplier = speedMultiplier;
 
@@ -487,6 +544,10 @@ bool get _canWrite => !readOnly;
 
   void setScenario(String scenario) {
     if (!_canWrite) return;
+
+    // Scenario selection is also part of the debug sim experience.
+    if (!debugSimActive) enterDebugSim();
+
     time.scenario = scenario;
     notifyListeners();
   }
@@ -508,6 +569,7 @@ bool get _canWrite => !readOnly;
 
   Future<void> updateSettings(int newSteps, int newWater) async {
     if (!_canWrite) return;
+
     dailyStepGoal = newSteps;
     dailyWaterGoal = newWater;
     dog.stepGoal = newSteps;
@@ -523,13 +585,17 @@ bool get _canWrite => !readOnly;
     notifyListeners();
   }
 
-
   // ===================================================
   //                BACKEND SYNC
   // ===================================================
 
   Future<void> saveToBackend() async {
     if (!_canWrite) return;
+
+    // Do NOT auto-persist plant/dog while in debug sim.
+    // Persistence should be explicit via commitDebugState().
+    if (debugSimActive) return;
+
     await _api.updatePlantStatus(userId, plant.health);
     await _api.updateDogStatus(userId, dog.mood);
   }
@@ -538,6 +604,7 @@ bool get _canWrite => !readOnly;
   void dispose() {
     _simTimer?.cancel();
     _realTimeTimer?.cancel();
+    _coinRampTimer?.cancel();
     super.dispose();
   }
 }

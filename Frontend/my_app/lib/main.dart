@@ -13,7 +13,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  
   static const Color brandMint = Color.fromRGBO(146, 202, 170, 1);
 
   @override
@@ -33,7 +32,8 @@ class MyApp extends StatelessWidget {
         colorScheme: colorScheme,
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            textStyle:
+                textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -50,8 +50,20 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// =========================
+// Background assets + chooser
+// =========================
 
-const String kRoomBackgroundAssetPath = 'assets/images/rooms/daylight_room.png';
+const String kDayRoomBackgroundAssetPath =
+    'assets/images/rooms/daylight_room.png';
+const String kNightRoomBackgroundAssetPath =
+    'assets/images/rooms/night_room.png';
+
+String roomBackgroundFor(DateTime t) {
+  final h = t.hour;
+  final isNight = (h >= 20 || h < 6); // Night: 20:00–05:59
+  return isNight ? kNightRoomBackgroundAssetPath : kDayRoomBackgroundAssetPath;
+}
 
 /// Fade
 PageRouteBuilder<T> fadeRoute<T>(Widget page) {
@@ -60,7 +72,8 @@ PageRouteBuilder<T> fadeRoute<T>(Widget page) {
     reverseTransitionDuration: const Duration(milliseconds: 260),
     pageBuilder: (_, __, ___) => page,
     transitionsBuilder: (_, animation, __, child) {
-      final fade = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      final fade =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
       final scale = Tween<double>(begin: 0.99, end: 1.0).animate(fade);
       return FadeTransition(
         opacity: fade,
@@ -69,7 +82,6 @@ PageRouteBuilder<T> fadeRoute<T>(Widget page) {
     },
   );
 }
-
 
 class RoomLoadingPage extends StatelessWidget {
   const RoomLoadingPage({
@@ -82,12 +94,13 @@ class RoomLoadingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bgAsset = roomBackgroundFor(DateTime.now());
 
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(kRoomBackgroundAssetPath, fit: BoxFit.cover),
+          Image.asset(bgAsset, fit: BoxFit.cover),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
             child: const SizedBox.expand(),
@@ -180,8 +193,9 @@ class _CozyAuthShellState extends State<CozyAuthShell>
   @override
   void initState() {
     super.initState();
-    _idleCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 30))
-      ..repeat(reverse: true);
+    _idleCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 30))
+          ..repeat(reverse: true);
 
     _dimOpacity = Tween<double>(begin: 0.34, end: 0.38).animate(
       CurvedAnimation(parent: _idleCtrl, curve: Curves.easeInOut),
@@ -205,6 +219,7 @@ class _CozyAuthShellState extends State<CozyAuthShell>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bgAsset = roomBackgroundFor(DateTime.now());
 
     return Scaffold(
       body: AnimatedBuilder(
@@ -213,7 +228,7 @@ class _CozyAuthShellState extends State<CozyAuthShell>
           return Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(kRoomBackgroundAssetPath, fit: BoxFit.cover),
+              Image.asset(bgAsset, fit: BoxFit.cover),
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                 child: const SizedBox.expand(),
@@ -239,7 +254,8 @@ class _CozyAuthShellState extends State<CozyAuthShell>
                 ),
               Center(
                 child: _BreathingCard(
-                  maxWidth: MediaQuery.of(context).size.width.clamp(320.0, 480.0),
+                  maxWidth:
+                      MediaQuery.of(context).size.width.clamp(320.0, 480.0),
                   blurRadius: _shadowBlur.value,
                   yOffset: _shadowYOffset.value,
                   child: widget.child,
@@ -309,7 +325,8 @@ class AuthChoicePage extends StatelessWidget {
         children: [
           Text(
             'Welcome',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style:
+                theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           Text(
@@ -338,7 +355,8 @@ class AuthChoicePage extends StatelessWidget {
               ),
               child: Text(
                 'Log in',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style:
+                    theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
           ),
@@ -362,7 +380,8 @@ class AuthChoicePage extends StatelessWidget {
               ),
               child: Text(
                 'Create account',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style:
+                    theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
           ),
@@ -497,7 +516,8 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           Text(
             'Welcome back',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style:
+                theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           Text(
@@ -525,7 +545,8 @@ class _LoginPageState extends State<LoginPage> {
               label: 'Password',
               suffixIcon: IconButton(
                 tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
@@ -554,7 +575,8 @@ class _LoginPageState extends State<LoginPage> {
                     )
                   : Text(
                       'Enter',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
             ),
           ),
@@ -688,7 +710,8 @@ class _RegisterPageState extends State<RegisterPage> {
         children: [
           Text(
             'Create your space',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style:
+                theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           Text(
@@ -716,7 +739,8 @@ class _RegisterPageState extends State<RegisterPage> {
               label: 'Password',
               suffixIcon: IconButton(
                 tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
@@ -736,8 +760,10 @@ class _RegisterPageState extends State<RegisterPage> {
             decoration: cozyFieldDecoration(
               label: 'Confirm password',
               suffixIcon: IconButton(
-                tooltip: _obscureConfirm ? 'Show password' : 'Hide password',
-                onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                tooltip:
+                    _obscureConfirm ? 'Show password' : 'Hide password',
+                onPressed: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
                 icon: Icon(
                   _obscureConfirm
                       ? Icons.visibility_outlined
@@ -755,7 +781,8 @@ class _RegisterPageState extends State<RegisterPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: MyApp.brandMint,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
               child: _isLoading
@@ -766,7 +793,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     )
                   : Text(
                       'Create account',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
             ),
           ),

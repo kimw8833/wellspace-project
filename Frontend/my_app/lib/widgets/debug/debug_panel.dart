@@ -33,6 +33,9 @@ class DebugPanel extends StatelessWidget {
   final Function(String) onScenarioChanged;
   final Function(double) onDogStepsChanged;
 
+  // NEW: explicit commit action (developer-only usage)
+  final VoidCallback? onCommit;
+
   final Widget dogSprite;
   final Color plantColor;
 
@@ -40,18 +43,14 @@ class DebugPanel extends StatelessWidget {
     super.key,
     required this.simulatedTime,
     required this.autoSimLabel,
-
     required this.stepsToday,
     required this.dogStepGoal,
     required this.dogMood,
     required this.dogMoodLabel,
-
     required this.plantHealth,
     required this.hydrationSmoothed,
     required this.plantHealthLabel,
-
     required this.currentScenario,
-
     required this.onAddDayMinus1,
     required this.onAddHourMinus1,
     required this.onAddHourPlus1,
@@ -62,9 +61,9 @@ class DebugPanel extends StatelessWidget {
     required this.onResetAchievements,
     required this.onScenarioChanged,
     required this.onDogStepsChanged,
-
     required this.dogSprite,
     required this.plantColor,
+    this.onCommit,
   });
 
   String _formatTime(DateTime d) {
@@ -105,7 +104,6 @@ class DebugPanel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-
                       // HANDLE
                       Center(
                         child: Container(
@@ -150,10 +148,14 @@ class DebugPanel extends StatelessWidget {
                         spacing: 10,
                         alignment: WrapAlignment.center,
                         children: [
-                          FancyDebugButton(label: "-1 day", onPressed: onAddDayMinus1),
-                          FancyDebugButton(label: "-1 hour", onPressed: onAddHourMinus1),
-                          FancyDebugButton(label: "+1 hour", onPressed: onAddHourPlus1),
-                          FancyDebugButton(label: "+1 day", onPressed: onAddDayPlus1),
+                          FancyDebugButton(
+                              label: "-1 day", onPressed: onAddDayMinus1),
+                          FancyDebugButton(
+                              label: "-1 hour", onPressed: onAddHourMinus1),
+                          FancyDebugButton(
+                              label: "+1 hour", onPressed: onAddHourPlus1),
+                          FancyDebugButton(
+                              label: "+1 day", onPressed: onAddDayPlus1),
                         ],
                       ),
 
@@ -179,7 +181,8 @@ class DebugPanel extends StatelessWidget {
                         alignment: WrapAlignment.center,
                         children: [
                           FancyDebugButton(label: "Play 1x", onPressed: onPlay1x),
-                          FancyDebugButton(label: "Play 10x", onPressed: onPlay10x),
+                          FancyDebugButton(
+                              label: "Play 10x", onPressed: onPlay10x),
                           FancyDebugButton(label: "Pause", onPressed: onPause),
                         ],
                       ),
@@ -288,6 +291,14 @@ class DebugPanel extends StatelessWidget {
                         label: "Reset Achievements",
                         onPressed: onResetAchievements,
                       ),
+
+                      if (onCommit != null) ...[
+                        const SizedBox(height: 10),
+                        FancyDebugButton(
+                          label: "Commit state",
+                          onPressed: onCommit!,
+                        ),
+                      ],
                     ],
                   ),
                 ),

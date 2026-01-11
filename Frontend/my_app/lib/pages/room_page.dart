@@ -45,8 +45,16 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
   bool get isDeveloper => widget.userId == 1;
 
-  static const String _backgroundImageAssetPath =
+  static const String _dayRoomAsset =
       "assets/images/rooms/daylight_room.png";
+  static const String _nightRoomAsset =
+      "assets/images/rooms/night_room.png";
+
+  String _backgroundFor(DateTime t) {
+    final h = t.hour;
+    final isNight = (h >= 20 || h < 6); // Night: 20:00–05:59
+    return isNight ? _nightRoomAsset : _dayRoomAsset;
+  }
 
   @override
   void initState() {
@@ -213,13 +221,13 @@ class _MyRoomPageState extends State<MyRoomPage> {
   }
 
   /// Room-themed loading UI so you never see a white screen.
-  Widget _cozyRoomLoader(BuildContext context) {
+  Widget _cozyRoomLoader(BuildContext context, String bgAsset) {
     final theme = Theme.of(context);
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.asset(
-          _backgroundImageAssetPath,
+          bgAsset,
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
@@ -268,11 +276,31 @@ class _MyRoomPageState extends State<MyRoomPage> {
     );
   }
 
+  Future<void> _toggleDebug() async {
+    setState(() => _debugVisible = !_debugVisible);
+
+    if (_debugVisible) {
+      controller.enterDebugSim();
+    } else {
+      controller.exitDebugSim();
+    }
+  }
+
+  Future<void> _commitAndCloseDebug() async {
+    await controller.commitDebugState();
+    if (mounted) {
+      setState(() => _debugVisible = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (controller.isLoading) {
-      return Scaffold(body: _cozyRoomLoader(context));
+      final bgAsset = _backgroundFor(DateTime.now());
+      return Scaffold(body: _cozyRoomLoader(context, bgAsset));
     }
+
+    final bgAsset = _backgroundFor(controller.effectiveNow);
 
     final state = controller.state;
     final screenW = MediaQuery.of(context).size.width;
@@ -305,9 +333,9 @@ class _MyRoomPageState extends State<MyRoomPage> {
           // BACKGROUND
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage(_backgroundImageAssetPath),
+                  image: AssetImage(bgAsset),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -378,7 +406,6 @@ class _MyRoomPageState extends State<MyRoomPage> {
                   ),
                 ),
 
-   
                 if (!widget.isVisitor)
                   SafeArea(
                     child: Align(
@@ -404,9 +431,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                                   color: Colors.white.withOpacity(0.7),
                                   size: 22,
                                 ),
-                                onPressed: () => setState(
-                                  () => _debugVisible = !_debugVisible,
-                                ),
+                                onPressed: _toggleDebug,
                               ),
                           ],
                         ),
@@ -444,13 +469,13 @@ class _MyRoomPageState extends State<MyRoomPage> {
                             controller.setStepsToday(v.toInt()),
                         onResetAchievements: () =>
                             controller.resetAllAchievements(),
+                        onCommit: _commitAndCloseDebug,
                       ),
                     ),
                   ),
               ],
             ),
           ),
-
 
           if (widget.isVisitor) _visitorOverlay(context),
         ],
