@@ -457,6 +457,13 @@ class _MyRoomPageState extends State<MyRoomPage> {
                         hydrationSmoothed: controller.plant.hydrationSmoothed,
                         plantHealthLabel: "",
                         plantColor: Colors.white,
+
+                        // NEW
+                        waterToday: controller.waterToday,
+                        dailyWaterGoal: controller.dailyWaterGoal,
+                        onWaterChanged: (v) =>
+                            controller.addWater(v.toInt() - controller.waterToday),
+
                         onAddDayMinus1: () => controller.addDays(-1),
                         onAddHourMinus1: () => controller.addHours(-1),
                         onAddHourPlus1: () => controller.addHours(1),
@@ -465,12 +472,13 @@ class _MyRoomPageState extends State<MyRoomPage> {
                         onPlay10x: () => controller.playAutoSim(10),
                         onPause: () => controller.pauseAutoSim(),
                         onScenarioChanged: (s) => controller.setScenario(s),
-                        onDogStepsChanged: (v) =>
-                            controller.setStepsToday(v.toInt()),
-                        onResetAchievements: () =>
-                            controller.resetAllAchievements(),
+                        onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
+                        onResetAchievements: () => controller.resetAllAchievements(),
+
+                        
                         onCommit: _commitAndCloseDebug,
                       ),
+
                     ),
                   ),
               ],

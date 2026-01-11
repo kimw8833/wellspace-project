@@ -21,6 +21,10 @@ class DebugPanel extends StatelessWidget {
 
   final String currentScenario;
 
+  // NEW: water debug
+  final int waterToday;
+  final int dailyWaterGoal;
+
   // Controller callbacks
   final VoidCallback onAddDayMinus1;
   final VoidCallback onAddHourMinus1;
@@ -32,6 +36,9 @@ class DebugPanel extends StatelessWidget {
   final VoidCallback onResetAchievements;
   final Function(String) onScenarioChanged;
   final Function(double) onDogStepsChanged;
+
+  // NEW: water slider callback
+  final Function(double) onWaterChanged;
 
   // NEW: explicit commit action (developer-only usage)
   final VoidCallback? onCommit;
@@ -51,6 +58,11 @@ class DebugPanel extends StatelessWidget {
     required this.hydrationSmoothed,
     required this.plantHealthLabel,
     required this.currentScenario,
+
+    // NEW
+    required this.waterToday,
+    required this.dailyWaterGoal,
+
     required this.onAddDayMinus1,
     required this.onAddHourMinus1,
     required this.onAddHourPlus1,
@@ -61,6 +73,10 @@ class DebugPanel extends StatelessWidget {
     required this.onResetAchievements,
     required this.onScenarioChanged,
     required this.onDogStepsChanged,
+
+    // NEW
+    required this.onWaterChanged,
+
     required this.dogSprite,
     required this.plantColor,
     this.onCommit,
@@ -268,6 +284,39 @@ class DebugPanel extends StatelessWidget {
                           color: Colors.white70,
                           fontSize: 12,
                         ),
+                      ),
+
+                      // NEW: WATER DEBUG SECTION (right after plant state)
+                      const SizedBox(height: 14),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 12),
+
+                      const Text(
+                        "Water Intake Debug",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        "Water today: $waterToday ml   |   Goal: $dailyWaterGoal ml",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+
+                      Slider(
+                        value: waterToday.toDouble().clamp(0.0, dailyWaterGoal.toDouble()),
+                        min: 0,
+                        max: dailyWaterGoal.toDouble().clamp(1.0, double.infinity),
+                        onChanged: onWaterChanged,
                       ),
 
                       const SizedBox(height: 14),
