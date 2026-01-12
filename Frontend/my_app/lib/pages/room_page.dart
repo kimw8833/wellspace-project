@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:my_app/widgets/sprites/friend_picture_sprite.dart';
 
 import '../controllers/room_controller.dart';
+import '../services/api_service.dart';
+import '../widgets/tutorial/room_tutorial.dart';
+
 import '../widgets/sprites/plant_sprite.dart';
 import '../widgets/sprites/dog_sprite.dart';
 import '../widgets/debug/debug_panel.dart';
@@ -41,14 +44,27 @@ class _MyRoomPageState extends State<MyRoomPage> {
   late RoomController controller;
   bool _debugVisible = false;
 
+  // ✅ tutorial + backend
+  final ApiService _api = ApiService();
+
+  // Existing key
   final GlobalKey _coinPillKey = GlobalKey();
+
+  // ✅ tutorial target keys
+  final GlobalKey _plantKey = GlobalKey();
+  final GlobalKey _dogKey = GlobalKey();
+  final GlobalKey _friendsKey = GlobalKey();
+  final GlobalKey _trophyKey = GlobalKey();
+  final GlobalKey _menuKey = GlobalKey();
+
+  // ✅ tutorial guards
+  bool _tutorialCheckStarted = false;
+  bool _tutorialShown = false;
 
   bool get isDeveloper => widget.userId == 1;
 
-  static const String _dayRoomAsset =
-      "assets/images/rooms/daylight_room.png";
-  static const String _nightRoomAsset =
-      "assets/images/rooms/night_room.png";
+  static const String _dayRoomAsset = "assets/images/rooms/daylight_room.png";
+  static const String _nightRoomAsset = "assets/images/rooms/night_room.png";
 
   String _backgroundFor(DateTime t) {
     final h = t.hour;
@@ -75,6 +91,29 @@ class _MyRoomPageState extends State<MyRoomPage> {
 
   void _onControllerUpdate() {
     setState(() {});
+
+    // ✅ kick tutorial once we’re done loading
+    if (!controller.isLoading) {
+      RoomTutorial.maybeStart(
+        context: context,
+        api: _api,
+        userId: widget.userId,
+        isVisitor: widget.isVisitor,
+        debugVisible: _debugVisible,
+        tutorialCheckStarted: _tutorialCheckStarted,
+        tutorialShown: _tutorialShown,
+        setTutorialCheckStarted: (v) => _tutorialCheckStarted = v,
+        setTutorialShown: (v) => _tutorialShown = v,
+        keys: RoomTutorialKeys(
+          coin: _coinPillKey,
+          trophy: _trophyKey,
+          friends: _friendsKey,
+          plant: _plantKey,
+          dog: _dogKey,
+          menu: _menuKey,
+        ),
+      );
+    }
   }
 
   void _openSettingsDialog() async {
@@ -260,9 +299,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  widget.isVisitor
-                      ? 'Entering their room…'
-                      : 'Preparing your room…',
+                  widget.isVisitor ? 'Entering their room…' : 'Preparing your room…',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: Colors.black.withOpacity(0.8),
@@ -364,9 +401,12 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 Positioned(
                   left: leftPlantX,
                   bottom: bottomPlantY,
-                  child: Transform.scale(
-                    scale: SpriteScale.plant,
-                    child: PlantSprite(health: state.plantHealth),
+                  child: KeyedSubtree(
+                    key: _plantKey,
+                    child: Transform.scale(
+                      scale: SpriteScale.plant,
+                      child: PlantSprite(health: state.plantHealth),
+                    ),
                   ),
                 ),
 
@@ -374,9 +414,12 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 Positioned(
                   right: rightDogX,
                   bottom: bottomDogY,
-                  child: Transform.scale(
-                    scale: SpriteScale.dog,
-                    child: DogSprite(mood: state.dogHealth),
+                  child: KeyedSubtree(
+                    key: _dogKey,
+                    child: Transform.scale(
+                      scale: SpriteScale.dog,
+                      child: DogSprite(mood: state.dogHealth),
+                    ),
                   ),
                 ),
 
@@ -384,12 +427,15 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 Positioned(
                   right: rightFriendPictureX,
                   bottom: bottomFriendPictureY,
-                  child: Transform.scale(
-                    scale: SpriteScale.friendPicture,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _openFriendsDialog,
-                      child: FriendPictureSprite(),
+                  child: KeyedSubtree(
+                    key: _friendsKey,
+                    child: Transform.scale(
+                      scale: SpriteScale.friendPicture,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _openFriendsDialog,
+                        child: FriendPictureSprite(),
+                      ),
                     ),
                   ),
                 ),
@@ -398,11 +444,14 @@ class _MyRoomPageState extends State<MyRoomPage> {
                 Positioned(
                   right: rightTrophyX,
                   bottom: bottomTrophyY,
-                  child: Transform.scale(
-                    scale: 1.8,
-                    child: TrophySprite(
-                      onTap: _openAchievementsDialog,
-                      glow: controller.hasClaimableAchievements,
+                  child: KeyedSubtree(
+                    key: _trophyKey,
+                    child: Transform.scale(
+                      scale: 1.8,
+                      child: TrophySprite(
+                        onTap: _openAchievementsDialog,
+                        glow: controller.hasClaimableAchievements,
+                      ),
                     ),
                   ),
                 ),
@@ -417,11 +466,14 @@ class _MyRoomPageState extends State<MyRoomPage> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             _coinPill(),
-                            RoomMenuButton(
-                              onSettings: _openSettingsDialog,
-                              onLogout: () => Navigator.of(context).pop(),
-                              onAchievements: _openAchievementsDialog,
-                              onFriends: _openFriendsDialog,
+                            KeyedSubtree(
+                              key: _menuKey,
+                              child: RoomMenuButton(
+                                onSettings: _openSettingsDialog,
+                                onLogout: () => Navigator.of(context).pop(),
+                                onAchievements: _openAchievementsDialog,
+                                onFriends: _openFriendsDialog,
+                              ),
                             ),
                             if (isDeveloper)
                               IconButton(
@@ -475,11 +527,8 @@ class _MyRoomPageState extends State<MyRoomPage> {
                         onScenarioChanged: (s) => controller.setScenario(s),
                         onDogStepsChanged: (v) => controller.setStepsToday(v.toInt()),
                         onResetAchievements: () => controller.resetAllAchievements(),
-
-                        
                         onCommit: _commitAndCloseDebug,
                       ),
-
                     ),
                   ),
               ],
