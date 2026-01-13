@@ -20,6 +20,8 @@ import '../models/dog_model.dart';
 import '../widgets/sprites/trophy_sprite.dart';
 import '../widgets/achievements_dialog.dart';
 
+import '../main.dart' show AuthChoicePage, fadeRoute;
+
 class MyRoomPage extends StatefulWidget {
   final int userId;
 
@@ -475,7 +477,12 @@ class _MyRoomPageState extends State<MyRoomPage> {
                               key: _menuKey,
                               child: RoomMenuButton(
                                 onSettings: _openSettingsDialog,
-                                onLogout: () => Navigator.of(context).pop(),
+                                onLogout: () {
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    fadeRoute(const AuthChoicePage(title: 'Wellspace')),
+                                    (route) => false,
+                                  );
+                                },
                                 onAchievements: _openAchievementsDialog,
                                 onFriends: _openFriendsDialog,
                               ),
