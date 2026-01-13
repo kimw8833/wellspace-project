@@ -10,6 +10,9 @@ import '../models/room_state.dart';
 import '../services/api_service.dart';
 import '../models/achievement_definitions.dart';
 
+import '../sound/room_audio_service.dart';
+
+
 import 'dart:math';
 
 class RoomController extends ChangeNotifier {
@@ -85,6 +88,47 @@ class RoomController extends ChangeNotifier {
   // Timers
   Timer? _simTimer;
   Timer? _realTimeTimer;
+
+  // ===================================================
+  //                ROOM AMBIENCE AUDIO
+  // ===================================================
+  final RoomAudioService _roomAudio = RoomAudioService();
+
+  // 0.0 - 1.0
+  double roomMusicVolume = 0.6;
+
+  double get roomMusicVolumeClamped => roomMusicVolume.clamp(0.0, 1.0);
+
+  
+
+  Future<void> initRoomAudioIfNeeded() async {
+    // You can still allow visitors to hear ambience; volume is local anyway.
+    await _roomAudio.init(
+      assetPath: 'assets/sound/music/wellspace.wav',
+      initialVolume: roomMusicVolumeClamped,
+      loop: true,
+    );
+  }
+
+  Future<void> startRoomAmbience() async {
+    await initRoomAudioIfNeeded();
+    await _roomAudio.play();
+  }
+
+  Future<void> stopRoomAmbience() async {
+    await _roomAudio.pause();
+  }
+
+  Future<void> setRoomMusicVolume(double v) async {
+    roomMusicVolume = v.clamp(0.0, 1.0);
+
+    await initRoomAudioIfNeeded();
+    // If audio hasn't been init yet, this won't crash — init later uses the stored value.
+    await _roomAudio.setVolume(roomMusicVolume);
+    notifyListeners();
+  }
+
+
 
   // ===================================================
   //                ACHIEVEMENTS (INDEX-DRIVEN)
@@ -235,6 +279,8 @@ class RoomController extends ChangeNotifier {
     );
 
     _startRealTimeTicker();
+
+    unawaited(startRoomAmbience());
     notifyListeners();
   }
 
@@ -798,6 +844,8 @@ class RoomController extends ChangeNotifier {
     _simTimer?.cancel();
     _realTimeTimer?.cancel();
     _coinRampTimer?.cancel();
+
+    unawaited(_roomAudio.dispose());
     super.dispose();
   }
 }

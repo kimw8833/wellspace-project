@@ -124,11 +124,16 @@ class _MyRoomPageState extends State<MyRoomPage> {
       builder: (_) => SettingsDialog(
         currentStepGoal: controller.dailyStepGoal,
         currentWaterGoal: controller.dailyWaterGoal,
+        currentMusicVolume: controller.roomMusicVolume,
+        onMusicVolumeChanged: (v) => controller.setRoomMusicVolume(v),
       ),
     );
 
     if (result != null) {
       controller.updateSettings(result["steps"], result["water"]);
+
+      final v = (result["musicVolume"] as num).toDouble();
+      await controller.setRoomMusicVolume(v);
     }
   }
 

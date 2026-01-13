@@ -5,10 +5,16 @@ class SettingsDialog extends StatefulWidget {
   final int currentStepGoal;
   final int currentWaterGoal;
 
+  /// 0.0 - 1.0
+  final double currentMusicVolume;
+  final ValueChanged<double>? onMusicVolumeChanged;
+
   const SettingsDialog({
     super.key,
     required this.currentStepGoal,
     required this.currentWaterGoal,
+    required this.currentMusicVolume,
+    this.onMusicVolumeChanged
   });
 
   @override
@@ -19,11 +25,21 @@ class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController stepCtrl;
   late TextEditingController waterCtrl;
 
+  double _musicVolume = 0.6;
+
+  // Remembers last non-zero volume so mute toggle can restore nicely.
+  double _lastNonZeroVolume = 0.6;
+
+  bool get _isMuted => _musicVolume <= 0.0001;
+
   @override
   void initState() {
     super.initState();
     stepCtrl = TextEditingController(text: widget.currentStepGoal.toString());
     waterCtrl = TextEditingController(text: widget.currentWaterGoal.toString());
+
+    _musicVolume = (widget.currentMusicVolume).clamp(0.0, 1.0);
+    _lastNonZeroVolume = _musicVolume > 0.0001 ? _musicVolume : 0.6;
   }
 
   @override
@@ -33,8 +49,37 @@ class _SettingsDialogState extends State<SettingsDialog> {
     super.dispose();
   }
 
+  void _toggleMute() {
+    setState(() {
+      if (_isMuted) {
+        // Unmute -> restore last non-zero
+        _musicVolume = _lastNonZeroVolume.clamp(0.0, 1.0);
+      } else {
+        // Mute -> remember current volume
+        _lastNonZeroVolume = _musicVolume.clamp(0.0, 1.0);
+        _musicVolume = 0.0;
+      }
+    });
+
+    widget.onMusicVolumeChanged?.call(_musicVolume);
+  }
+
+  void _setVolume(double v) {
+    final clamped = v.clamp(0.0, 1.0);
+    setState(() {
+      _musicVolume = clamped;
+      if (_musicVolume > 0.0001) {
+        _lastNonZeroVolume = _musicVolume;
+      }
+    });
+
+    widget.onMusicVolumeChanged?.call(_musicVolume);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final volumePct = (_musicVolume * 100).round();
+
     return Center(
       child: Material(
         // transparent so we keep our custom glass look
@@ -83,6 +128,62 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   _fieldLabel("Daily Water Goal (ml)"),
                   _numberInput(waterCtrl),
 
+                  const SizedBox(height: 18),
+
+                  // ✅ Music Volume
+                  _fieldLabel("Room Music Volume"),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      // Mute toggle
+                      GestureDetector(
+                        onTap: _toggleMute,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.15),
+                            ),
+                          ),
+                          child: Icon(
+                            _isMuted ? Icons.volume_off : Icons.volume_up,
+                            color: Colors.white.withOpacity(0.9),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: Slider(
+                          value: _musicVolume,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          onChanged: _setVolume,
+                        ),
+                      ),
+
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          "$volumePct%",
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 26),
 
                   Row(
@@ -97,14 +198,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         onTap: () {
                           final steps =
                               int.tryParse(stepCtrl.text) ??
-                              widget.currentStepGoal;
+                                  widget.currentStepGoal;
                           final water =
                               int.tryParse(waterCtrl.text) ??
-                              widget.currentWaterGoal;
+                                  widget.currentWaterGoal;
 
-                          Navigator.of(
-                            context,
-                          ).pop({"steps": steps, "water": water});
+                          Navigator.of(context).pop({
+                            "steps": steps,
+                            "water": water,
+                            "musicVolume": _musicVolume,
+                          });
                         },
                       ),
                     ],
