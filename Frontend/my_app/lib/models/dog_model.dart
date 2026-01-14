@@ -1,19 +1,25 @@
 // lib/models/dog_model.dart
 
-import 'package:flutter/foundation.dart'; // ONLY for debug-printing if needed; safe to remove.
-
 class DogModel {
-  double mood; // 0..1
+  // 0..1
+  double mood;
+
   bool lockedHappy;
+
   int stepsToday;
   int stepsAtLastTick;
+
   DateTime lastTickTime;
+
+  // Early-morning rule applied once per day.
   bool earlyRuleApplied;
 
-  // Constants from your code
   int stepGoal;
+
   static const int earlySteps = 1000;
   static const Duration tickInterval = Duration(minutes: 30);
+
+  // Mood model parameters.
   static const double gainPer1000 = 0.18;
   static const double decayWhenIdle = 0.03;
 
@@ -27,7 +33,6 @@ class DogModel {
     this.earlyRuleApplied = false,
   }) : lastTickTime = startOfDay ?? DateTime.now();
 
-  /// Reset dog at start of day (same as _resetDogForNewDay).
   void resetForNewDay(DateTime startOfDay) {
     mood = 0.5;
     lockedHappy = false;
@@ -37,7 +42,7 @@ class DogModel {
     lastTickTime = startOfDay;
   }
 
-  /// Apply steps directly (debug feature).
+  // Set steps and apply a tick at currentTime using the implied delta.
   void debugSetSteps(int newSteps, DateTime currentTime) {
     final clamped = newSteps.clamp(0, stepGoal);
     final delta = clamped - stepsToday;
@@ -45,7 +50,7 @@ class DogModel {
     applyTick(currentTime, forcedStepsDelta: delta);
   }
 
-  /// Advance dog ticks between two simulated times.
+  // Apply ticks between two timestamps (used for simulated time progression).
   void runTicks(DateTime from, DateTime to) {
     if (lockedHappy) {
       lastTickTime = to;
@@ -67,7 +72,6 @@ class DogModel {
     lastTickTime = tickTime;
   }
 
-  /// Apply one dog tick.
   void applyTick(DateTime atTime, {int? forcedStepsDelta}) {
     if (lockedHappy) return;
 
@@ -75,9 +79,9 @@ class DogModel {
     final minutesSinceDayStart = atTime.difference(dayStart).inMinutes;
     final isFirstHour = minutesSinceDayStart < 60;
 
-    int delta = forcedStepsDelta ?? (stepsToday - stepsAtLastTick);
+    final int delta = forcedStepsDelta ?? (stepsToday - stepsAtLastTick);
 
-    // Early morning rule (once per day)
+    // First hour: one-time daily adjustment based on reaching earlySteps.
     if (isFirstHour && !earlyRuleApplied) {
       if (stepsToday >= earlySteps) {
         mood += 0.25;
@@ -86,7 +90,7 @@ class DogModel {
       }
       earlyRuleApplied = true;
     } else {
-      // Normal tick rule
+      // Regular tick: gain on movement, decay when idle.
       if (delta > 0) {
         mood += gainPer1000 * (delta / 1000.0);
       } else {
@@ -94,6 +98,7 @@ class DogModel {
       }
     }
 
+    // Lock at max mood once step goal is reached.
     if (stepsToday >= stepGoal) {
       mood = 1.0;
       lockedHappy = true;

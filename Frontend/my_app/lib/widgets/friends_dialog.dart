@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:my_app/services/api_service.dart';
 
-// ✅ Add this import (adjust path if your folder structure differs)
 import 'package:my_app/pages/room_page.dart';
 
 enum FriendsTab { friends, requests, add }
@@ -28,7 +27,6 @@ class _FriendsDialogState extends State<FriendsDialog>
   final TextEditingController addFriendCtrl = TextEditingController();
   bool isSending = false;
 
-  // ✅ Frontend-only feedback (no backend changes needed)
   String? _sendStatus;
   bool _sendOk = false;
 
@@ -75,9 +73,9 @@ class _FriendsDialogState extends State<FriendsDialog>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MyRoomPage(
-          userId: friendId, // ✅ room owner id
-          viewerUserId: widget.userId, // ✅ viewer id (you)
-          roomOwnerUsername: friendUsername, // ✅ banner text
+          userId: friendId,
+          viewerUserId: widget.userId, 
+          roomOwnerUsername: friendUsername, 
         ),
       ),
     );
@@ -498,7 +496,6 @@ class _FriendsDialogState extends State<FriendsDialog>
           ),
           const SizedBox(width: 8),
 
-          // Remove = icon-only destructive (with confirmation outside)
           _iconDangerButton(
             icon: Icons.close_rounded,
             tooltip: "Remove",
@@ -594,9 +591,8 @@ class _FriendsDialogState extends State<FriendsDialog>
       ),
     );
   }
-  // --- end new friend bar row ---
 
-  // Existing generic row (used for requests tab)
+
   Widget _row({required String title, required Widget trailing}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

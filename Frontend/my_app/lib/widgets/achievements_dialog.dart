@@ -7,10 +7,8 @@ import '../controllers/room_controller.dart';
 import '../models/achievement_definitions.dart';
 import 'sprites/achievement_row.dart';
 
-// coin fly overlay helper
 import 'fx/coin_fly_fx.dart';
 
-// Claimed tab extracted (place this file at: lib/widgets/claimed_achievements.dart)
 import 'sprites/claimed_achievements.dart';
 
 class AchievementsDialog extends StatefulWidget {

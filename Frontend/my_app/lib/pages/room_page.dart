@@ -46,20 +46,20 @@ class _MyRoomPageState extends State<MyRoomPage> {
   late RoomController controller;
   bool _debugVisible = false;
 
-  // ✅ tutorial + backend
+
   final ApiService _api = ApiService();
 
-  // Existing key
+
   final GlobalKey _coinPillKey = GlobalKey();
 
-  // ✅ tutorial target keys
+
   final GlobalKey _plantKey = GlobalKey();
   final GlobalKey _dogKey = GlobalKey();
   final GlobalKey _friendsKey = GlobalKey();
   final GlobalKey _trophyKey = GlobalKey();
   final GlobalKey _menuKey = GlobalKey();
 
-  // ✅ tutorial guards
+
   bool _tutorialCheckStarted = false;
   bool _tutorialShown = false;
 
@@ -94,7 +94,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
   void _onControllerUpdate() {
     setState(() {});
 
-    // ✅ kick tutorial once we’re done loading
+    
     if (!controller.isLoading) {
       RoomTutorial.maybeStart(
         context: context,
@@ -386,7 +386,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
             ),
           ),
 
-          // ✅ Non-clickable visitor mode for interactive elements
+          
           AbsorbPointer(
             absorbing: widget.isVisitor,
             child: Stack(
@@ -504,7 +504,7 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     ),
                   ),
 
-                // ✅ DEBUG PANEL: only owner/dev, and not in visitor mode
+                
                 if (_debugVisible && isDeveloper && !widget.isVisitor)
                   SafeArea(
                     child: Align(

@@ -105,7 +105,6 @@ class _CoinBurstFlightState extends State<_CoinBurstFlight>
     return Offset.lerp(ab, bc, t)!;
   }
 
-  // ✅ Emoji rendered via WidgetSpan to avoid underline/baseline artifacts
   Widget _emojiCoin({double size = 26}) {
     return RichText(
       text: TextSpan(
@@ -116,7 +115,6 @@ class _CoinBurstFlightState extends State<_CoinBurstFlight>
               '🪙',
               style: TextStyle(
                 fontSize: size,
-                // These help avoid weird font fallback behavior:
                 height: 1.0,
                 decoration: TextDecoration.none,
               ),
@@ -163,7 +161,6 @@ class _CoinBurstFlightState extends State<_CoinBurstFlight>
               double opacity;
 
               if (tStaggered < popPhase) {
-                // POP: smooth drift outwards, no bounce
                 final u = (tStaggered / popPhase).clamp(0.0, 1.0);
                 final pop = Curves.easeOutCubic.transform(u);
 

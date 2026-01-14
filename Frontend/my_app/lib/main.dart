@@ -453,10 +453,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _enterRoomWithUserId(int userId) async {
-    // 1) show room-themed loader (no white flash)
+   
     Navigator.of(context).push(fadeRoute(RoomLoadingPage(title: widget.title)));
 
-    // 2) next frame replace with room page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.of(context).pushReplacement(
         fadeRoute(MyRoomPage(userId: userId)),
@@ -609,7 +608,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// Register page (uses ApiService().register)
+/// Register page 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key, required this.title});
   final String title;

@@ -130,7 +130,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
                   const SizedBox(height: 18),
 
-                  // ✅ Music Volume
                   _fieldLabel("Room Music Volume"),
                   const SizedBox(height: 6),
                   Row(

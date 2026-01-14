@@ -1,31 +1,24 @@
 // lib/controllers/room_controller.dart
 
 import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
-import '../models/plant_model.dart';
-import '../models/dog_model.dart';
-import '../models/time_simulation.dart';
-import '../models/room_state.dart';
-import '../services/api_service.dart';
 import '../models/achievement_definitions.dart';
-
+import '../models/dog_model.dart';
+import '../models/plant_model.dart';
+import '../models/room_state.dart';
+import '../models/time_simulation.dart';
+import '../services/api_service.dart';
 import '../sound/room_audio_service.dart';
-
-
-import 'dart:math';
 
 class RoomController extends ChangeNotifier {
   final int userId;
   final bool readOnly;
   final ApiService _api = ApiService();
 
-  // =========================
-  // Debug simulation mode flag
-  // =========================
-  //
-  // When true: simulated time is authoritative (manual + auto sim work)
-  // When false: real time is authoritative
+  // Debug: when true, simulated time is the authoritative clock.
   bool debugSimActive = false;
 
   // Models
@@ -38,7 +31,7 @@ class RoomController extends ChangeNotifier {
   int dailyWaterGoal = 2000;
   int dailyStepGoal = 10000;
 
-  // COINS
+  // Coins
   int coins = 0;
   int coinsDisplay = 0;
 
@@ -89,9 +82,7 @@ class RoomController extends ChangeNotifier {
   Timer? _simTimer;
   Timer? _realTimeTimer;
 
-  // ===================================================
-  //                ROOM AMBIENCE AUDIO
-  // ===================================================
+  // Room ambience audio
   final RoomAudioService _roomAudio = RoomAudioService();
 
   // 0.0 - 1.0
@@ -99,10 +90,7 @@ class RoomController extends ChangeNotifier {
 
   double get roomMusicVolumeClamped => roomMusicVolume.clamp(0.0, 1.0);
 
-  
-
   Future<void> initRoomAudioIfNeeded() async {
-    // You can still allow visitors to hear ambience; volume is local anyway.
     await _roomAudio.init(
       assetPath: 'assets/sound/music/wellspace.wav',
       initialVolume: roomMusicVolumeClamped,
@@ -123,28 +111,26 @@ class RoomController extends ChangeNotifier {
     roomMusicVolume = v.clamp(0.0, 1.0);
 
     await initRoomAudioIfNeeded();
-    // If audio hasn't been init yet, this won't crash — init later uses the stored value.
     await _roomAudio.setVolume(roomMusicVolume);
     notifyListeners();
   }
 
+  // =========================
+  // Achievements (index-driven)
+  // =========================
 
-
-  // ===================================================
-  //                ACHIEVEMENTS (INDEX-DRIVEN)
-  // ===================================================
-
-  /// achievement_index -> progress (0–100)
+  // achievement_index -> progress (0–100)
   final Map<int, int> _achievementProgress = {1: 0, 2: 0, 3: 0};
 
-  /// achievement_index values that have been claimed (frontend-only for now)
+  // achievement_index values claimed (frontend tracking)
   final Set<int> _claimedAchievements = {};
 
-  /// Explorer achievement (index 1): unique events only
+  // Explorer (index 1): unique events only
   final Set<String> _explorerEventsSeen = {};
 
   static const int explorerAchievementIndex = 1;
 
+  // achievement_index -> tier (tiered achievements)
   final Map<int, int> _achievementTier = {1: 0, 2: 0, 3: 0};
 
   int achievementTier(int index) => _achievementTier[index] ?? 0;
@@ -159,16 +145,11 @@ class RoomController extends ChangeNotifier {
     for (final def in achievementDefinitions.values) {
       if (def.title.trim() == '—') continue;
 
-      // Tiered achievements
       if (def.isTiered) {
         final progress = achievementProgress(def.index);
         final target = _tierTarget(def.index);
-
         if (progress >= target) return true;
-      }
-
-      // Single achievements
-      else {
+      } else {
         if (isAchievementCompleted(def.index) &&
             !isAchievementClaimed(def.index)) {
           return true;
@@ -178,12 +159,9 @@ class RoomController extends ChangeNotifier {
     return false;
   }
 
-
-
-
-  // ===================================================
-  //          REAL-DAY ROLLOVER TRACKING (NON-DEBUG)
-  // ===================================================
+  // =========================
+  // Real-day rollover tracking
+  // =========================
   DateTime _lastRealDate = DateTime(
     DateTime.now().year,
     DateTime.now().month,
@@ -207,36 +185,27 @@ class RoomController extends ChangeNotifier {
     _initialize();
   }
 
-  // ===================================================
-  //                EFFECTIVE TIME SOURCE
-  // ===================================================
-
-  /// In normal mode -> real time
-  /// In debug sim mode -> simulated time
+  // Effective clock source: real time (normal) vs simulated time (debug).
   DateTime get effectiveNow {
     return debugSimActive ? time.simulatedTime : DateTime.now();
   }
 
-  // ===================================================
-  //                DEBUG SIM LIFECYCLE
-  // ===================================================
+  // =========================
+  // Debug sim lifecycle
+  // =========================
 
-  /// Turn on debug sim time authority (does not persist anything by itself).
   void enterDebugSim() {
     if (!_canWrite) return;
 
     debugSimActive = true;
-
-    // Anchor the sim clock to now on entry (nice default)
     time.simulatedTime = DateTime.now();
     time.updateCurrentDate();
 
     notifyListeners();
   }
 
-  /// Turn off debug sim time authority and return to real time.
   void exitDebugSim({bool resetTimeToNow = true}) {
-    stopAutoSim(); // also restarts real ticker
+    stopAutoSim();
     debugSimActive = false;
 
     if (resetTimeToNow) {
@@ -247,31 +216,26 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Explicitly persist current debug-tuned plant & dog state.
-  /// Achievements are intentionally not touched here.
+  // Persist debug-tuned plant/dog state only (explicit action).
   Future<void> commitDebugState() async {
     if (!_canWrite) return;
 
     await _api.updatePlantStatus(userId, plant.health);
     await _api.updateDogStatus(userId, dog.mood);
 
-    // Optional: you could persist coins/steps/etc here later if desired.
-    // For now, strictly plant + dog as agreed.
-
-    // Exit debug sim after committing so the system snaps back to "truth".
     exitDebugSim(resetTimeToNow: true);
   }
 
-  // ===================================================
-  //          CORE INITIALIZATION WITH LOADING
-  // ===================================================
+  // =========================
+  // Initialization
+  // =========================
 
   Future<void> _initialize() async {
     await _loadInitialBackendState();
     await _loadAchievementsFromBackend();
     isLoading = false;
 
-    // Reset real-day anchor after backend load (prevents false rollover)
+    // Reset anchor after backend load to avoid a false rollover.
     _lastRealDate = DateTime(
       DateTime.now().year,
       DateTime.now().month,
@@ -284,31 +248,26 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                REAL-TIME TICKER
-  // ===================================================
+  // =========================
+  // Real-time ticker
+  // =========================
 
   void _startRealTimeTicker() {
     _realTimeTimer?.cancel();
-    _realTimeTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        // Only tick UI on real time when not in debug sim and not autosimming.
-        // (Autosim already notifies on each sim tick.)
-        if (!debugSimActive && !time.autoSimRunning) {
-          // ✅ Detect real midnight rollover for streak-type achievements.
-          final now = DateTime.now();
-          final today = DateTime(now.year, now.month, now.day);
+    _realTimeTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      // Only tick UI from real time when not in debug sim and not auto-simming.
+      if (!debugSimActive && !time.autoSimRunning) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
 
-          if (today != _lastRealDate) {
-            _handleNewDayBoundaryReal(today);
-            _lastRealDate = today;
-          }
-
-          notifyListeners();
+        if (today != _lastRealDate) {
+          _handleNewDayBoundaryReal(today);
+          _lastRealDate = today;
         }
-      },
-    );
+
+        notifyListeners();
+      }
+    });
   }
 
   void _stopRealTimeTicker() {
@@ -317,26 +276,23 @@ class RoomController extends ChangeNotifier {
   }
 
   void _handleNewDayBoundaryReal(DateTime today) {
-    // Process "yesterday" outcome using the counters currently in memory.
+    // Process previous day outcome before resetting counters.
     final didMeetWaterGoal = waterToday >= dailyWaterGoal;
 
-    // Tiered streak achievements can hook into this.
     _applyTieredStreakDayResult(
       achievementIndex: 2, // Hydration Habit (tiered)
       didMeetGoal: didMeetWaterGoal,
     );
 
-    // Reset daily counters for the new day (real time).
     waterToday = 0;
 
-    // Reset dog for a new real day to keep day math sane.
     final start = DateTime(today.year, today.month, today.day, 0, 0);
     dog.resetForNewDay(start);
   }
 
-  // ===================================================
-  //                INITIAL BACKEND FETCH
-  // ===================================================
+  // =========================
+  // Initial backend fetch
+  // =========================
 
   Future<void> _loadInitialBackendState() async {
     final plantStatus = await _api.getPlantStatus(userId);
@@ -392,9 +348,7 @@ class RoomController extends ChangeNotifier {
 
       final def = achievementDefinitions[index];
 
-      // ✅ Progress rules:
-      // - Non-tiered (Explorer): never downgrade (max)
-      // - Tiered (streak-like): allow downgrade (set)
+      // Non-tiered: never downgrade progress. Tiered: allow downgrade.
       final p = progress.clamp(0, 100);
       if (def != null && def.isTiered) {
         _achievementProgress[index] = p;
@@ -403,11 +357,9 @@ class RoomController extends ChangeNotifier {
         _achievementProgress[index] = max(current, p);
       }
 
-      // ✅ Tier (default 0 if missing)
       final tier = toInt(a['tier']) ?? 0;
       _achievementTier[index] = max(0, tier);
 
-      // ✅ Claimed (default false if missing)
       final claimed = toBool(a['claimed']);
       if (claimed) {
         _claimedAchievements.add(index);
@@ -419,9 +371,9 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                TIERED ACHIEVEMENT HELPERS
-  // ===================================================
+  // =========================
+  // Tiered achievement helpers
+  // =========================
 
   bool _isTiered(int index) {
     final def = achievementDefinitions[index];
@@ -457,7 +409,6 @@ class RoomController extends ChangeNotifier {
     _achievementTier[index] = nextTier;
     _achievementProgress[index] = 0;
 
-    // Persist tier/progress/claimed for tiered achievements.
     unawaited(_api.updateAchievementTier(userId, index, nextTier));
     unawaited(_api.updateAchievementProgress(userId, index, 0));
     unawaited(_api.updateAchievementClaimed(userId, index, 0));
@@ -470,11 +421,10 @@ class RoomController extends ChangeNotifier {
     if (!_canWrite) return;
     if (!_isTiered(achievementIndex)) return;
 
-    // Only hydration is wired right now; later you can call this for steps too.
     final current = _achievementProgress[achievementIndex] ?? 0;
     final target = _tierTarget(achievementIndex);
 
-    // If already at/over target, keep it stable (so user can claim).
+    // If at/over target, keep stable so it remains claimable.
     if (current >= target) return;
 
     final next = didMeetGoal ? (current + 1) : 0;
@@ -486,9 +436,9 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                ACHIEVEMENT PUBLIC API
-  // ===================================================
+  // =========================
+  // Achievement public API
+  // =========================
 
   int achievementProgress(int index) => _achievementProgress[index] ?? 0;
 
@@ -505,7 +455,6 @@ class RoomController extends ChangeNotifier {
     if (!_canWrite) return;
     if (!isAchievementCompleted(index)) return;
 
-    // ✅ Tiered achievements: claim current tier, award coins, advance tier, reset progress.
     if (_isTiered(index)) {
       final reward = _tierRewardCoins(index);
       if (reward > 0) {
@@ -519,12 +468,9 @@ class RoomController extends ChangeNotifier {
       return;
     }
 
-    // ✅ Non-tiered achievements (Explorer) behavior unchanged
     if (isAchievementClaimed(index)) return;
 
     _claimedAchievements.add(index);
-
-    // ✅ Persist claimed immediately
     unawaited(_api.updateAchievementClaimed(userId, index, 1));
 
     final def = achievementDefinitions[index];
@@ -546,14 +492,12 @@ class RoomController extends ChangeNotifier {
     _claimedAchievements.clear();
     _explorerEventsSeen.clear();
 
-    // Reset real-day anchor so we don't accidentally process a rollover immediately.
     _lastRealDate = DateTime(
       DateTime.now().year,
       DateTime.now().month,
       DateTime.now().day,
     );
 
-    // ✅ Sync reset to backend (testing)
     for (final index in _achievementProgress.keys) {
       unawaited(_api.updateAchievementProgress(userId, index, 0));
       unawaited(_api.updateAchievementClaimed(userId, index, 0));
@@ -563,9 +507,9 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                ACHIEVEMENT 1: EXPLORER
-  // ===================================================
+  // =========================
+  // Achievement 1: Explorer
+  // =========================
 
   void registerExplorerEvent(String eventKey) {
     if (!_canWrite) return;
@@ -596,16 +540,14 @@ class RoomController extends ChangeNotifier {
     }
 
     _achievementProgress[index] = effective;
-
-    // Keep achievements behavior as-is (we are not changing achievements now)
     _api.updateAchievementProgress(userId, index, clamped);
 
     notifyListeners();
   }
 
-  // ===================================================
-  //                STATE SNAPSHOT FOR UI
-  // ===================================================
+  // =========================
+  // State snapshot for UI
+  // =========================
 
   RoomState get state => RoomState(
         plantHealth: plant.health,
@@ -614,9 +556,9 @@ class RoomController extends ChangeNotifier {
         waterToday: waterToday,
       );
 
-  // ===================================================
-  //                PLANT UPDATE
-  // ===================================================
+  // =========================
+  // Plant update
+  // =========================
 
   void applyDailyUpdate() {
     final ratio = (waterToday / dailyWaterGoal).clamp(0.0, 1.0);
@@ -629,29 +571,26 @@ class RoomController extends ChangeNotifier {
     plant.applyDailyUpdate(ratio);
   }
 
-  // ===================================================
-  //                DOG STEP UPDATE
-  // ===================================================
+  // =========================
+  // Dog step update
+  // =========================
 
   void setStepsToday(int steps) {
     if (!_canWrite) return;
 
-    // When debugging, we want the dog to use the simulated clock.
-    // When not debugging, it uses real time.
     final clamped = steps.clamp(0, dailyStepGoal);
     dog.debugSetSteps(clamped, effectiveNow);
 
     notifyListeners();
   }
 
-  // ===================================================
-  //                MANUAL TIME CONTROL
-  // ===================================================
+  // =========================
+  // Manual time control
+  // =========================
 
   void addHours(int hours) {
     if (!_canWrite) return;
 
-    // Manual time travel should always operate in debug sim authority.
     if (!debugSimActive) enterDebugSim();
 
     stopAutoSim();
@@ -661,7 +600,6 @@ class RoomController extends ChangeNotifier {
     dog.runTicks(prev, time.simulatedTime);
 
     if (time.isNewDay()) {
-      // ✅ Streak achievements should evaluate before counters reset.
       final didMeetWaterGoal = waterToday >= dailyWaterGoal;
       _applyTieredStreakDayResult(
         achievementIndex: 2,
@@ -685,7 +623,6 @@ class RoomController extends ChangeNotifier {
 
     if (days > 0) {
       for (int i = 0; i < days; i++) {
-        // ✅ Each simulated day boundary processes the day result.
         final didMeetWaterGoal = waterToday >= dailyWaterGoal;
         _applyTieredStreakDayResult(
           achievementIndex: 2,
@@ -712,22 +649,19 @@ class RoomController extends ChangeNotifier {
     dog.resetForNewDay(start);
   }
 
-  // ===================================================
-  //                AUTO-SIMULATION
-  // ===================================================
+  // =========================
+  // Auto-simulation
+  // =========================
 
   void playAutoSim(double speedMultiplier) {
     if (!_canWrite) return;
 
-    // Autosim is a debug simulation feature — use simulated time authority.
     if (!debugSimActive) enterDebugSim();
 
     stopAutoSim();
-
     _stopRealTimeTicker();
 
-    // IMPORTANT: Do NOT reset simulatedTime to DateTime.now() here.
-    // That was the source of the "pause snaps back / resets" feeling.
+    // Keep simulatedTime stable when toggling auto-sim.
     time.autoSimRunning = true;
     time.speedMultiplier = speedMultiplier;
 
@@ -762,7 +696,6 @@ class RoomController extends ChangeNotifier {
     dog.runTicks(prev, now);
 
     if (time.isNewDay()) {
-      // ✅ Streak achievements should evaluate before counters reset.
       final didMeetWaterGoal = waterToday >= dailyWaterGoal;
       _applyTieredStreakDayResult(
         achievementIndex: 2,
@@ -777,23 +710,22 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                SCENARIO
-  // ===================================================
+  // =========================
+  // Scenario
+  // =========================
 
   void setScenario(String scenario) {
     if (!_canWrite) return;
 
-    // Scenario selection is also part of the debug sim experience.
     if (!debugSimActive) enterDebugSim();
 
     time.scenario = scenario;
     notifyListeners();
   }
 
-  // ===================================================
-  //                WATER CONTROL
-  // ===================================================
+  // =========================
+  // Water control
+  // =========================
 
   void addWater(int ml) {
     if (!_canWrite) return;
@@ -802,9 +734,9 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //               UPDATE SETTINGS
-  // ===================================================
+  // =========================
+  // Update settings
+  // =========================
 
   Future<void> updateSettings(int newSteps, int newWater) async {
     if (!_canWrite) return;
@@ -824,15 +756,14 @@ class RoomController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===================================================
-  //                BACKEND SYNC
-  // ===================================================
+  // =========================
+  // Backend sync
+  // =========================
 
   Future<void> saveToBackend() async {
     if (!_canWrite) return;
 
-    // Do NOT auto-persist plant/dog while in debug sim.
-    // Persistence should be explicit via commitDebugState().
+    // Avoid persisting plant/dog while simulated time is authoritative.
     if (debugSimActive) return;
 
     await _api.updatePlantStatus(userId, plant.health);

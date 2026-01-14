@@ -10,7 +10,6 @@ class AchievementRow extends StatelessWidget {
   final bool claimed;
   final bool isPlaceholder;
 
-  // CHANGED: onClaim now provides the global screen position of the CLAIM button
   final void Function(Offset fromGlobal) onClaim;
 
   final AchievementRowStyle style;
@@ -167,7 +166,6 @@ class _DiplomaRightSide extends StatelessWidget {
         _CoinPill(coins: coins, muted: false),
         const SizedBox(height: 8),
 
-        // IMPORTANT: we must measure the button's position, so we use Builder()
         Builder(
           builder: (btnCtx) {
             return TextButton(

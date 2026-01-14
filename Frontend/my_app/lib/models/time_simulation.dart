@@ -10,6 +10,7 @@ class TimeSimulation {
   static const Duration simTickRealDuration = Duration(milliseconds: 300);
   static const double hoursPerTickBase = 1.0;
 
+  // Discrete hydration scenarios.
   String scenario = 'ok'; // 'dry', 'ok', 'perfect'
 
   TimeSimulation()
@@ -20,7 +21,7 @@ class TimeSimulation {
           DateTime.now().day,
         );
 
-  /// Return hydration ratio based on scenario.
+  // Hydration ratio derived from active scenario.
   double get scenarioRatio {
     switch (scenario) {
       case 'dry':
@@ -33,7 +34,7 @@ class TimeSimulation {
     }
   }
 
-  /// Manual hours (does NOT run plant/dog — controller will).
+  // Advance simulated time by whole hours.
   void addHours(int hours) {
     simulatedTime = simulatedTime.add(Duration(hours: hours));
     currentSimulatedDate = DateTime(
@@ -43,7 +44,7 @@ class TimeSimulation {
     );
   }
 
-  /// Manual days (controller decides how to update plant/dog).
+  // Advance simulated time by whole days.
   void addDays(int days) {
     simulatedTime = simulatedTime.add(Duration(days: days));
     currentSimulatedDate = DateTime(
@@ -53,8 +54,8 @@ class TimeSimulation {
     );
   }
 
-  /// Called externally by timer to advance time.
-  /// Returns how many minutes were advanced.
+  // Advance simulated time during auto-simulation.
+  // Returns elapsed minutes.
   int tickAutoSim() {
     final hoursToAdd = hoursPerTickBase * speedMultiplier;
     final minutes = (hoursToAdd * 60).round();
@@ -62,7 +63,7 @@ class TimeSimulation {
     return minutes;
   }
 
-  /// Detect if date changed.
+  // Check whether simulated date boundary was crossed.
   bool isNewDay() {
     final newDate = DateTime(
       simulatedTime.year,
@@ -72,7 +73,7 @@ class TimeSimulation {
     return newDate != currentSimulatedDate;
   }
 
-  /// Sync date after detecting change.
+  // Update cached date after a detected boundary.
   void updateCurrentDate() {
     currentSimulatedDate = DateTime(
       simulatedTime.year,
@@ -84,6 +85,7 @@ class TimeSimulation {
   String get formattedTime {
     final d = simulatedTime;
     String two(int n) => n.toString().padLeft(2, '0');
-    return "${d.year}-${two(d.month)}-${two(d.day)}  ${two(d.hour)}:${two(d.minute)}";
+    return "${d.year}-${two(d.month)}-${two(d.day)}  "
+           "${two(d.hour)}:${two(d.minute)}";
   }
 }

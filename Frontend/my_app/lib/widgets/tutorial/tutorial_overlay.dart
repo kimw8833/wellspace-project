@@ -204,7 +204,7 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Paper-like gradient instead of flat fill
+    // Paper-like gradient 
     final paper = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,

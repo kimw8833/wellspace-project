@@ -64,12 +64,9 @@ class _TrophySpriteState extends State<TrophySprite>
           // 0..1
           final t = widget.glow ? _pulseCtrl.value : 0.0;
 
-          // A gentle "breathing" scale (optional but helps readability)
           final scale = 1.0 + (0.03 * t);
 
-          // Stronger, clearer glow:
-          // - opacity breathes
-          // - blur/spread breathes
+         
           final glowOpacity = 0.18 + (0.55 * t);
           final blur = 10.0 + (22.0 * t);
           final spread = 0.5 + (2.8 * t);

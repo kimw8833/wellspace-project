@@ -25,7 +25,6 @@ class _ClaimedAchievementsState extends State<ClaimedAchievements> {
       ..sort((a, b) => a.index.compareTo(b.index));
 
     final claimedDefs = defs.where((def) {
-      // Tiered: show if at least 1 tier has been completed/claimed
       if (def.isTiered) {
         final completedCount =
             widget.controller.achievementTier(def.index).clamp(0, def.tiers.length);
@@ -89,7 +88,6 @@ class _SingleClaimedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use the SAME AchievementRow so the muted/grey look matches exactly.
     return AchievementRow(
       definition: def,
       progress: 100,
@@ -117,8 +115,6 @@ class _TieredClaimedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We intentionally mimic AchievementRow's "claimed muted" vibe.
-    // That is: low-contrast text/icon + subtle background.
     final mutedTitle = Colors.black.withOpacity(0.45);
     final mutedBody = Colors.black.withOpacity(0.40);
 

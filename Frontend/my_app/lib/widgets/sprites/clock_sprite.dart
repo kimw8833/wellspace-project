@@ -8,11 +8,8 @@ class ClockSprite extends StatelessWidget {
   final DateTime time;
   final double size;
 
-  /// TEMP: keep this true while aligning the sprite
   final bool showDebugCircle;
 
-  /// Fine-tuning offset for the clock image (pixels)
-  /// Adjust until hands align perfectly with the face
   final Offset faceOffset = const Offset(2, 0);
 
   const ClockSprite({

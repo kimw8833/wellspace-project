@@ -1,9 +1,6 @@
 import 'package:just_audio/just_audio.dart';
 
-/// Handles ONLY the ambient "room music".
-/// - Loads asset once
-/// - Loops continuously
-/// - Exposes volume + play/pause/stop
+
 class RoomAudioService {
   final AudioPlayer _player = AudioPlayer();
 
@@ -62,7 +59,7 @@ class RoomAudioService {
     await _player.setVolume(_clamp01(value));
   }
 
-  /// Optional: nice for room transitions.
+  
   Future<void> fadeTo(double targetVolume,
       {Duration duration = const Duration(milliseconds: 400),
       int steps = 20}) async {

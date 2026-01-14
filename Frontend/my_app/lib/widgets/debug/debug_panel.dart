@@ -21,7 +21,6 @@ class DebugPanel extends StatelessWidget {
 
   final String currentScenario;
 
-  // NEW: water debug
   final int waterToday;
   final int dailyWaterGoal;
 
@@ -37,10 +36,8 @@ class DebugPanel extends StatelessWidget {
   final Function(String) onScenarioChanged;
   final Function(double) onDogStepsChanged;
 
-  // NEW: water slider callback
   final Function(double) onWaterChanged;
 
-  // NEW: explicit commit action (developer-only usage)
   final VoidCallback? onCommit;
 
   final Widget dogSprite;
@@ -59,7 +56,7 @@ class DebugPanel extends StatelessWidget {
     required this.plantHealthLabel,
     required this.currentScenario,
 
-    // NEW
+
     required this.waterToday,
     required this.dailyWaterGoal,
 
@@ -74,7 +71,7 @@ class DebugPanel extends StatelessWidget {
     required this.onScenarioChanged,
     required this.onDogStepsChanged,
 
-    // NEW
+
     required this.onWaterChanged,
 
     required this.dogSprite,
