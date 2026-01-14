@@ -1,53 +1,57 @@
-// lib/widgets/water_input_dialog.dart
+// lib/widgets/steps_input_dialog.dart
 
 import 'package:flutter/material.dart';
 
-class WaterInputDialog extends StatefulWidget {
-  final int waterToday;
+class StepsInputDialog extends StatefulWidget {
+  final int stepsToday;
   final int dailyGoal;
 
-  
-  final void Function(int ml) onAdd;
+  /// Called with the chosen delta steps (e.g. +500).
+  final void Function(int delta) onAdd;
 
-  const WaterInputDialog({
+  const StepsInputDialog({
     super.key,
-    required this.waterToday,
+    required this.stepsToday,
     required this.dailyGoal,
     required this.onAdd,
   });
 
   @override
-  State<WaterInputDialog> createState() => _WaterInputDialogState();
+  State<StepsInputDialog> createState() => _StepsInputDialogState();
 }
 
-class _WaterInputDialogState extends State<WaterInputDialog> {
-  late int _waterTodayLocal;
+class _StepsInputDialogState extends State<StepsInputDialog> {
+  late int _stepsLocal;
 
-
+  /// Stack of recent adds so we can undo.
+  /// Stores actual deltas applied (after clamping).
   final List<int> _history = [];
 
   @override
   void initState() {
     super.initState();
-    _waterTodayLocal = widget.waterToday;
+    _stepsLocal = widget.stepsToday;
   }
 
-  bool get _goalMet => _waterTodayLocal >= widget.dailyGoal && widget.dailyGoal > 0;
+  bool get _goalMet => widget.dailyGoal > 0 && _stepsLocal >= widget.dailyGoal;
 
-  void _add(int ml) {
-    if (ml <= 0) return;
+  void _add(int delta) {
+    if (delta <= 0) return;
 
+    // Block adding once goal is met (unless goal is 0/invalid)
     if (_goalMet) return;
 
-   
-    final remaining = (widget.dailyGoal - _waterTodayLocal);
-    final actual = widget.dailyGoal > 0 ? ml.clamp(0, remaining) : ml;
+    // Clamp so we can reach exactly the goal but never exceed it
+    final remaining = widget.dailyGoal - _stepsLocal;
+    final actual = widget.dailyGoal > 0 ? delta.clamp(0, remaining) : delta;
 
     if (actual <= 0) return;
 
     widget.onAdd(actual); // updates controller
+
     setState(() {
-      _waterTodayLocal += actual;
+      _stepsLocal += actual;
+      if (_stepsLocal < 0) _stepsLocal = 0;
       _history.add(actual);
     });
   }
@@ -56,33 +60,32 @@ class _WaterInputDialogState extends State<WaterInputDialog> {
     if (_history.isEmpty) return;
 
     final last = _history.removeLast();
-    widget.onAdd(-last); // subtract in controller
+    widget.onAdd(-last); // subtract in controller (your RoomPage should support this)
+
     setState(() {
-      _waterTodayLocal -= last;
-      if (_waterTodayLocal < 0) _waterTodayLocal = 0;
+      _stepsLocal -= last;
+      if (_stepsLocal < 0) _stepsLocal = 0;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final safeGoal = widget.dailyGoal <= 0 ? 1 : widget.dailyGoal;
-    final progress = (_waterTodayLocal / safeGoal).clamp(0.0, 1.0);
-    final remaining = (widget.dailyGoal - _waterTodayLocal).clamp(0, 1 << 30);
+    final progress = (_stepsLocal / safeGoal).clamp(0.0, 1.0);
+    final remaining = (widget.dailyGoal - _stepsLocal).clamp(0, 1 << 30);
 
-    String fmtMl(int ml) => "$ml ml";
-
-    Widget addButton(int ml) {
+    Widget addButton(int steps) {
       final disabled = _goalMet;
       return Expanded(
         child: ElevatedButton(
-          onPressed: disabled ? null : () => _add(ml),
-          child: Text("+ ${fmtMl(ml)}"),
+          onPressed: disabled ? null : () => _add(steps),
+          child: Text("+ $steps"),
         ),
       );
     }
 
     return AlertDialog(
-      title: const Text("Water the plant"),
+      title: const Text("Walk the dog"),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -91,7 +94,7 @@ class _WaterInputDialogState extends State<WaterInputDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Today"),
-              Text("$_waterTodayLocal / ${widget.dailyGoal} ml"),
+              Text("$_stepsLocal / ${widget.dailyGoal}"),
             ],
           ),
           const SizedBox(height: 8),
@@ -111,7 +114,7 @@ class _WaterInputDialogState extends State<WaterInputDialog> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              _goalMet ? "Goal hit 🎉" : "Remaining: $remaining ml",
+              _goalMet ? "Goal hit 🐾" : "Remaining: $remaining steps",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -121,15 +124,23 @@ class _WaterInputDialogState extends State<WaterInputDialog> {
           // Quick amounts
           Row(
             children: [
-              addButton(250),
-              const SizedBox(width: 12),
               addButton(500),
+              const SizedBox(width: 12),
+              addButton(1000),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              addButton(2000),
+              const SizedBox(width: 12),
+              addButton(5000),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          // Undo row
+          // Undo
           Row(
             children: [
               Expanded(

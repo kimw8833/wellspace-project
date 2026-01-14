@@ -20,6 +20,8 @@ import '../models/dog_model.dart';
 import '../widgets/sprites/trophy_sprite.dart';
 import '../widgets/achievements_dialog.dart';
 import '../widgets/sprites/water_input_dialog.dart';
+import '../widgets/sprites/steps_input_dialog.dart';
+
 
 
 import '../main.dart' show AuthChoicePage, fadeRoute;
@@ -440,7 +442,23 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     key: _dogKey,
                     child: Transform.scale(
                       scale: SpriteScale.dog,
-                      child: DogSprite(mood: state.dogHealth),
+                      child: DogSprite(
+                              mood: state.dogHealth,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: true,
+                                  builder: (_) => StepsInputDialog(
+                                    stepsToday: controller.dog.stepsToday,
+                                    dailyGoal: controller.dailyStepGoal,
+                                    onAdd: (delta) {
+                                      final next = controller.dog.stepsToday + delta;
+                                      controller.setStepsToday(next);
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ),
