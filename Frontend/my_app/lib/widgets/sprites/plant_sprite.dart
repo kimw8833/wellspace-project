@@ -7,10 +7,14 @@ class PlantSprite extends StatelessWidget {
   final double health;
   final double width;
 
+  /// Called when the plant is tapped (e.g. open water dialog)
+  final VoidCallback? onTap;
+
   const PlantSprite({
     super.key,
     required this.health,
     this.width = 180,
+    this.onTap,
   });
 
   @override
@@ -19,7 +23,7 @@ class PlantSprite extends StatelessWidget {
     final int index = PlantSprites.indexForHealth(s);
     final String path = PlantSprites.stages[index];
 
-    return SizedBox(
+    final sprite = SizedBox(
       width: width,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 250),
@@ -34,6 +38,15 @@ class PlantSprite extends StatelessWidget {
           fit: BoxFit.contain,
         ),
       ),
+    );
+
+    // If no interaction is needed, return as-is
+    if (onTap == null) return sprite;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: onTap,
+      child: sprite,
     );
   }
 }

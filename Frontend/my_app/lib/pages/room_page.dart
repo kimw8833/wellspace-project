@@ -19,6 +19,8 @@ import '../utils/constants.dart';
 import '../models/dog_model.dart';
 import '../widgets/sprites/trophy_sprite.dart';
 import '../widgets/achievements_dialog.dart';
+import '../widgets/sprites/water_input_dialog.dart';
+
 
 import '../main.dart' show AuthChoicePage, fadeRoute;
 
@@ -412,7 +414,20 @@ class _MyRoomPageState extends State<MyRoomPage> {
                     key: _plantKey,
                     child: Transform.scale(
                       scale: SpriteScale.plant,
-                      child: PlantSprite(health: state.plantHealth),
+                      child: PlantSprite(
+                              health: state.plantHealth,
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: true,
+                                  builder: (_) => WaterInputDialog(
+                                    waterToday: controller.waterToday,
+                                    dailyGoal: controller.dailyWaterGoal,
+                                    onAdd: (ml) => controller.addWater(ml),
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ),
